@@ -1,0 +1,11 @@
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\bin\Debug\net10.0\ConectaSTI.Dominio.deps.json
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\bin\Debug\net10.0\ConectaSTI.Dominio.dll
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\bin\Debug\net10.0\ConectaSTI.Dominio.pdb
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ConectaSTI.Dominio.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ConectaSTI.Dominio.AssemblyInfoInputs.cache
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ConectaSTI.Dominio.AssemblyInfo.cs
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ConectaSTI.Dominio.csproj.CoreCompileInputs.cache
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ConectaSTI.Dominio.dll
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\refint\ConectaSTI.Dominio.dll
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ConectaSTI.Dominio.pdb
+C:\Users\Aula\Downloads\ConectaSTI-main\ConectaSTI.Backend\ConectaSTI\ConectaSTI.Dominio\obj\Debug\net10.0\ref\ConectaSTI.Dominio.dll
