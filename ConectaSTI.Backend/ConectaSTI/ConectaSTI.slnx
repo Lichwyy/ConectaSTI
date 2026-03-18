@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="../FGB.Api/FGB.Api.csproj" />
   <Project Path="../FGB/FGB.Dominio.csproj" />
+  <Project Path="ConectaSTI.Api/ConectaSTI.Api.csproj" />
   <Project Path="ConectaSTI.Dominio/ConectaSTI.Dominio.csproj" />
 </Solution>
