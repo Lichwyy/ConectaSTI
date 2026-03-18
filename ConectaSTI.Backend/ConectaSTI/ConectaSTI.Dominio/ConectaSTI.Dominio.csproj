@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="ObjetosValor\" />
-    <Folder Include="Servicos\" />
   </ItemGroup>
 
   <ItemGroup>
