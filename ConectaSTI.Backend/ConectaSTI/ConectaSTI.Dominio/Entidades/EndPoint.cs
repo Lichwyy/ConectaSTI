@@ -8,5 +8,5 @@ public class EndPoint : EntidadeBase
     [Obrigar]
     public string Recurso { get; set; }
     [Obrigar]
-    public long UrlId { get; set; }
+    public long IntegracaoId { get; set; }
 }
