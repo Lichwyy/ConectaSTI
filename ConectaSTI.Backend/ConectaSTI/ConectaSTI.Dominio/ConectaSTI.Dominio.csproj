@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="ObjetosValor\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\FGB\FGB.Dominio.csproj" />
   </ItemGroup>
 

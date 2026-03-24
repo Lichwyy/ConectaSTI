@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"  assembly="ConectaSTI.Dominio"  namespace="ConectaSTI.Dominio.Entidades">
+  <class name="Operacao" table="Operacao" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="Id">
+      <generator class="native" />
+    </id>
+
+    <property   name="CriadoEm"           column="criadoem"           type="DateTime"   not-null="false"  />
+    <property   name="UltimaAlteracao"    column="UltimaAlteracao"    type="DateTime"   not-null="false"  />
+
+
+    <property name="Body" column="Body" type="string"/>
+    <property name="Header" column="Header" type="string"/>
+    <property name="Ordem" column="Ordem" type="int"/>
+    <property name="NoId" column="NoId" type="long"/>
+    <property name="FluxoId" column="FluxoId" type="long"/>
+    <property name="Repetir" column="Repetir" type="bool" />
+    <property name="Erro" column="Erro" type="string" />
+    <property name="MaximoRepeticao" column="MaximoRepeticao" type="int"/>
+  </class>
+</hibernate-mapping>

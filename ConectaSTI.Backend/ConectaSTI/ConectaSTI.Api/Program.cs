@@ -1,3 +1,4 @@
+using ConectaSTI.Api.Extensoes;
 using FGB.API.Utils;
 
 namespace ConectaSTI.Api;
@@ -15,6 +16,7 @@ public class Program
         builder.Services.AddOpenApi();
 
         builder.Services.AddAutoMapperProfiles();
+        builder.Services.AddServicosConectaSti();
 
         builder.Services.AddSwaggerGen();
         

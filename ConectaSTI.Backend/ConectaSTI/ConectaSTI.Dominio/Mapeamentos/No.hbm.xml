@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"  assembly="ConectaSTI.Dominio"  namespace="ConectaSTI.Dominio.Entidades">
+  <class name="No" table="No" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="Id">
+      <generator class="native" />
+    </id>
+
+    <property   name="CriadoEm"           column="criadoem"           type="DateTime"   not-null="false"  />
+    <property   name="UltimaAlteracao"    column="UltimaAlteracao"    type="DateTime"   not-null="false"  />
+
+
+    <property name="Tipo" column="Tipo" type="string" not-null="true" />
+    <property name="FuncaoId" column="FuncaoId" type="long" not-null="false" />
+    <property name="EndPointId" column="EndPointId" type="long" not-null="false" />
+  </class>
+</hibernate-mapping>
