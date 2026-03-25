@@ -8,10 +8,17 @@
 
   <ItemGroup>
     <None Remove="Mapeamentos\EndPoint.hbm.xml" />
+    <None Remove="Migracoes\639099521123855868_Inicial.txt" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Mapeamentos\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Migracoes\*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

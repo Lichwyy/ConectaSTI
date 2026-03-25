@@ -28,17 +28,21 @@ public class Program
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
-        builder.Services.AddSingleton<NHSessionFactory>(_ =>
+        builder.Services.AddSingleton(_ =>
         {
             var cfg = new Configuration();
             cfg.Configure(Path.Combine(AppContext.BaseDirectory, "nhibernate.cfg.xml"));
-            return cfg.BuildSessionFactory();
+            return cfg;
         });
+
+        builder.Services.AddSingleton<NHSessionFactory>(sp =>
+            sp.GetRequiredService<Configuration>().BuildSessionFactory());
 
         builder.Services.AddScoped<NHSession>(sp =>
             sp.GetRequiredService<NHSessionFactory>().OpenSession());
 
         builder.Services.AddTransient<IRepositorioSessao, RepositorioSessao>();
+        builder.Services.AddTransient<IMigracao, Migracao>();
 
         builder.Services.AddAutoMapperProfiles();
         builder.Services.AddServicosConectaSti();
@@ -56,6 +60,14 @@ public class Program
         builder.Services.AddSwaggerGen();
         
         var app = builder.Build();
+
+        if (app.Configuration.GetValue<bool>("MigrateDb"))
+        {
+            using var scope = app.Services.CreateScope();
+            var migracao = scope.ServiceProvider.GetRequiredService<IMigracao>();
+            var migrationFolder = app.Configuration.GetValue<string>("MigrationFolder") ?? "Migracoes";
+            migracao.UpdateDatabase(migrationFolder);
+        }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())

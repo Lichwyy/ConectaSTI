@@ -1,0 +1,5 @@
+-- Migração de teste: inserção de um registro em integracao.
+-- A ordem de execução é garantida pelo prefixo numérico no nome do arquivo.
+
+INSERT INTO integracao (url, token, criadoem, ultimaalteracao)
+VALUES ('https://migracao-teste.local', 'token-migracao-teste', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
