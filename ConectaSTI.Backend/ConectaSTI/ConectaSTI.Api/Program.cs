@@ -1,5 +1,12 @@
 using ConectaSTI.Api.Extensoes;
 using FGB.API.Utils;
+using FGB.Dominio.Repositorios;
+using FGB.IRepositorios;
+using Microsoft.AspNetCore.OData;
+using NHibernate.Cfg;
+using System.Text.Json.Serialization;
+using NHSession = NHibernate.ISession;
+using NHSessionFactory = NHibernate.ISessionFactory;
 
 namespace ConectaSTI.Api;
 
@@ -11,12 +18,40 @@ public class Program
 
         // Add services to the container.
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers().AddOData(opt =>
+            opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000)).AddJsonOptions(opt =>
+                {
+                    opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                    opt.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
+                });
+
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
+        builder.Services.AddSingleton<NHSessionFactory>(_ =>
+        {
+            var cfg = new Configuration();
+            cfg.Configure(Path.Combine(AppContext.BaseDirectory, "nhibernate.cfg.xml"));
+            return cfg.BuildSessionFactory();
+        });
+
+        builder.Services.AddScoped<NHSession>(sp =>
+            sp.GetRequiredService<NHSessionFactory>().OpenSession());
+
+        builder.Services.AddTransient<IRepositorioSessao, RepositorioSessao>();
+
         builder.Services.AddAutoMapperProfiles();
         builder.Services.AddServicosConectaSti();
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
 
         builder.Services.AddSwaggerGen();
         
@@ -34,10 +69,14 @@ public class Program
             });
         }
 
-        app.UseHttpsRedirection();
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
+
+        app.UseCors("AllowAll");
 
         app.UseAuthorization();
-
 
         app.MapControllers();
 

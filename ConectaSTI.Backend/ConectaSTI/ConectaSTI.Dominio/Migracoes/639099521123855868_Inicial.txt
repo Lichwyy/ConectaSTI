@@ -2,12 +2,16 @@
 
 CREATE TABLE integracao (
     id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
     url VARCHAR(500) NOT NULL, -- Mapeado de [Obrigar]
     token VARCHAR(500)
 );
 
 CREATE TABLE funcao (
     id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
     nome VARCHAR(255) NOT NULL, -- Mapeado de [Obrigar]
     corpo_da_funcao TEXT NOT NULL, -- Mapeado de [Obrigar]
     parametro TEXT
@@ -15,13 +19,17 @@ CREATE TABLE funcao (
 
 CREATE TABLE fluxo (
     id BIGSERIAL PRIMARY KEY,
-    nome VARCHAR(255)
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
+    nome VARCHAR(255) NOT NULL
 );
 
 -- 2. Criação das tabelas com dependências (Chaves Estrangeiras)
 
 CREATE TABLE end_point (
     id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
     recurso VARCHAR(255) NOT NULL, -- Mapeado de [Obrigar]
     integracao_id BIGINT NOT NULL, -- Mapeado de [Obrigar]
     CONSTRAINT fk_end_point_integracao FOREIGN KEY (integracao_id) REFERENCES integracao (id) ON DELETE CASCADE
@@ -29,6 +37,8 @@ CREATE TABLE end_point (
 
 CREATE TABLE no (
     id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
     tipo INT NOT NULL, -- Mapeado de [Obrigar] (Tem que fazer nengue)
     funcao_id BIGINT NULL,
     end_point_id BIGINT NULL,
@@ -36,9 +46,10 @@ CREATE TABLE no (
     CONSTRAINT fk_no_end_point FOREIGN KEY (end_point_id) REFERENCES end_point (id) ON DELETE SET NULL
 );
 
-
 CREATE TABLE operacao (
     id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
     body TEXT,
     header TEXT,
     ordem INT NOT NULL, -- Mapeado de [Obrigar]

@@ -7,6 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Mapeamentos\EndPoint.hbm.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Mapeamentos\*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\FGB\FGB.Dominio.csproj" />
   </ItemGroup>
 

@@ -1,3 +1,4 @@
+using ConectaSTI.Dominio.ObjetosValor;
 using FGB.Dominio.Atributos;
 using FGB.Entidades;
 
@@ -13,11 +14,9 @@ public class Operacao : EntidadeBase
     public long NoId { get; set; }
     [Obrigar]
     public long FluxoId { get; set; }
-    public No No { get; set; }
-    public Fluxo Fluxo { get; set; }
     public bool Repetir { get; set; } = false;
     [Obrigar]
-    public string Erro { get; set; } // Tem que fazer nengue
+    public TipoErro Erro { get; set; } // Tem que fazer nengue
     public int MaximoRepeticao { get; set; }
 
     public void ValidarPoliticaRepeticao()

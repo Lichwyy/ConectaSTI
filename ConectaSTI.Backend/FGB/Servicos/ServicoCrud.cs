@@ -49,7 +49,7 @@ namespace FGB.Servicos
                 catch (Exception ex)
                 {
                     Repositorio.RollBackTransacao();
-                    Mensagens.Add(ex.Message);
+                    Mensagens.Add(ex.Message, true);
                 }
 
                 return !Mensagens.HasErro();
@@ -69,7 +69,7 @@ namespace FGB.Servicos
                 catch (Exception ex)
                 {
                     await Repositorio.RollBackTransacaoAsync();
-                    Mensagens.Add(ex.Message);
+                    Mensagens.Add(ex.Message, true);
                 }
 
                 return !Mensagens.HasErro();

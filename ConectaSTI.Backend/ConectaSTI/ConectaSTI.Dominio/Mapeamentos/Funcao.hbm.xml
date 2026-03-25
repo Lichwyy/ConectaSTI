@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"  assembly="ConectaSTI.Dominio"  namespace="ConectaSTI.Dominio.Entidades">
-  <class name="Funcao" table="Funcao" lazy="false" batch-size="100">
-    <id name="Id" type="long" column="Id">
-      <generator class="native" />
+  <class name="Funcao" table="funcao" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="id">
+      <generator class="sequence">
+        <param name="sequence">funcao_id_seq</param>
+      </generator>
     </id>
 
     <property   name="CriadoEm"           column="criadoem"           type="DateTime"   not-null="false"  />
-    <property   name="UltimaAlteracao"    column="UltimaAlteracao"    type="DateTime"   not-null="false"  />
+    <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Nome" column="Nome" type="string" not-null="true" />
-    <property name="CorpoDaFuncao" column="CorpoDaFuncao" type="string" not-null="true" />
-    <property name="Parametro" column="Parametro" type="string" not-null="false" />
+    <property name="Nome" column="nome" type="string" not-null="true" />
+    <property name="CorpoDaFuncao" column="corpo_da_funcao" type="string" not-null="true" />
+    <property name="Parametro" column="parametro" type="string" not-null="false" />
   </class>
 </hibernate-mapping>
