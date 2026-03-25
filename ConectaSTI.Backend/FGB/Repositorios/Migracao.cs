@@ -8,6 +8,8 @@ namespace FGB.Dominio.Repositorios
 	{
 		private readonly ISessionFactory _sessionFactory;
 		private readonly ILogger<Migracao> _logger;
+		private const string TabelaMigracoes = "migracao_banco";
+		private const string ColunaNomeArquivo = "nome_arquivo";
 
 		public Migracao(ISessionFactory sessionFactory, ILogger<Migracao> logger)
 		{
@@ -20,10 +22,10 @@ namespace FGB.Dominio.Repositorios
 			var fullPath = ResolveMigrationsFolder(migrationsFolder);
 			if (!Directory.Exists(fullPath))
 			{
-				throw new DirectoryNotFoundException("Migration folder not found: " + fullPath);
+				throw new DirectoryNotFoundException("Pasta de migracoes nao encontrada: " + fullPath);
 			}
 
-			_logger.LogInformation("Running migrations from: {Folder}", fullPath);
+			_logger.LogInformation("Executando migracoes a partir de: {Pasta}", fullPath);
 			EnsureMigrationTable();
 
 			var alreadyApplied = GetAppliedMigrations();
@@ -39,29 +41,29 @@ namespace FGB.Dominio.Repositorios
 				var fileName = Path.GetFileName(file);
 				if (alreadyApplied.Contains(fileName))
 				{
-					_logger.LogInformation("Skipping already applied migration: {Migration}", fileName);
+					_logger.LogInformation("Pulando migracao ja aplicada: {Migracao}", fileName);
 					continue;
 				}
 
 				ApplyMigrationFile(file, fileName);
 			}
 
-			_logger.LogInformation("Migrations finished successfully.");
+			_logger.LogInformation("Migracoes finalizadas com sucesso.");
 		}
 
 		private void EnsureMigrationTable()
 		{
-			const string ddl = @"CREATE TABLE IF NOT EXISTS _dbmigration (
-	id BIGSERIAL PRIMARY KEY,
-	data TIMESTAMP NOT NULL DEFAULT current_timestamp,
-	nome VARCHAR(255) NOT NULL UNIQUE
-);";
+			var ddlCriacao = @"CREATE TABLE IF NOT EXISTS migracao_banco (
+                id BIGSERIAL PRIMARY KEY,
+                data_execucao TIMESTAMP NOT NULL DEFAULT current_timestamp,
+                nome_arquivo VARCHAR(255) NOT NULL UNIQUE
+            );";
 
 			using var session = _sessionFactory.OpenSession();
 			using var transaction = session.BeginTransaction();
 			try
 			{
-				session.CreateSQLQuery(ddl).ExecuteUpdate();
+				session.CreateSQLQuery(ddlCriacao).ExecuteUpdate();
 				transaction.Commit();
 			}
 			catch
@@ -75,7 +77,7 @@ namespace FGB.Dominio.Repositorios
 		{
 			using var session = _sessionFactory.OpenSession();
 			var names = session
-				.CreateSQLQuery("SELECT nome FROM _dbmigration ORDER BY nome")
+				.CreateSQLQuery($"SELECT {ColunaNomeArquivo} FROM {TabelaMigracoes} ORDER BY {ColunaNomeArquivo}")
 				.List<string>();
 
 			return new HashSet<string>(names ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
@@ -86,7 +88,7 @@ namespace FGB.Dominio.Repositorios
 			var sql = File.ReadAllText(path).Trim();
 			if (string.IsNullOrWhiteSpace(sql))
 			{
-				_logger.LogInformation("Skipping empty migration file: {Migration}", fileName);
+				_logger.LogInformation("Pulando arquivo de migracao vazio: {Migracao}", fileName);
 				return;
 			}
 
@@ -97,17 +99,17 @@ namespace FGB.Dominio.Repositorios
 				// Execute script exactly as provided; each file runs atomically in its own transaction.
 				session.CreateSQLQuery(sql).ExecuteUpdate();
 
-				var insert = session.CreateSQLQuery("INSERT INTO _dbmigration (nome) VALUES (:nome)");
-				insert.SetParameter("nome", fileName);
+				var insert = session.CreateSQLQuery($"INSERT INTO {TabelaMigracoes} ({ColunaNomeArquivo}) VALUES (:nomeArquivo)");
+				insert.SetParameter("nomeArquivo", fileName);
 				insert.ExecuteUpdate();
 
 				transaction.Commit();
-				_logger.LogInformation("Applied migration: {Migration}", fileName);
+				_logger.LogInformation("Migracao aplicada com sucesso: {Migracao}", fileName);
 			}
 			catch (Exception ex)
 			{
 				transaction.Rollback();
-				_logger.LogError(ex, "Migration failed: {Migration}", fileName);
+				_logger.LogError(ex, "Falha ao aplicar migracao: {Migracao}", fileName);
 				throw;
 			}
 		}

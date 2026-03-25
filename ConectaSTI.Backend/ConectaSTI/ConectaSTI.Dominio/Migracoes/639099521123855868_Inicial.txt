@@ -1,6 +1,6 @@
 -- 1. Criação das tabelas independentes (sem chaves estrangeiras)
 
-CREATE TABLE integracao (
+CREATE TABLE IF NOT EXISTS integracao (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
@@ -8,7 +8,7 @@ CREATE TABLE integracao (
     token VARCHAR(500)
 );
 
-CREATE TABLE funcao (
+CREATE TABLE IF NOT EXISTS funcao (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
@@ -17,7 +17,7 @@ CREATE TABLE funcao (
     parametro TEXT
 );
 
-CREATE TABLE fluxo (
+CREATE TABLE IF NOT EXISTS fluxo (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
@@ -26,7 +26,7 @@ CREATE TABLE fluxo (
 
 -- 2. Criação das tabelas com dependências (Chaves Estrangeiras)
 
-CREATE TABLE end_point (
+CREATE TABLE IF NOT EXISTS end_point (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
@@ -35,18 +35,19 @@ CREATE TABLE end_point (
     CONSTRAINT fk_end_point_integracao FOREIGN KEY (integracao_id) REFERENCES integracao (id) ON DELETE CASCADE
 );
 
-CREATE TABLE no (
+CREATE TABLE IF NOT EXISTS no (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
-    tipo INT NOT NULL, -- Mapeado de [Obrigar] (Tem que fazer nengue)
+    tipo INT NOT NULL, -- Mapeado de [Obrigar]
     funcao_id BIGINT NULL,
     end_point_id BIGINT NULL,
     CONSTRAINT fk_no_funcao FOREIGN KEY (funcao_id) REFERENCES funcao (id) ON DELETE SET NULL,
     CONSTRAINT fk_no_end_point FOREIGN KEY (end_point_id) REFERENCES end_point (id) ON DELETE SET NULL
 );
 
-CREATE TABLE operacao (
+
+CREATE TABLE IF NOT EXISTS operacao (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
