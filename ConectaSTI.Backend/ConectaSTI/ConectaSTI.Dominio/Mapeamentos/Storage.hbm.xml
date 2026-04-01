@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"  assembly="ConectaSTI.Dominio"  namespace="ConectaSTI.Dominio.Entidades">
-  <class name="EndPoint" table="end_point" lazy="false" batch-size="100">
+  <class name="Storage" table="storage" lazy="false" batch-size="100">
     <id name="Id" type="long" column="id">
       <generator class="sequence">
-        <param name="sequence">end_point_id_seq</param>
+        <param name="sequence">storage_id_seq</param>
       </generator>
     </id>
 
@@ -11,8 +11,8 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Recurso" column="recurso" type="string" not-null="true" />
-    <property name="IntegracaoId" column="integracao_id" type="long" not-null="true" />
-    <property name="Verbo" column="verbo" not-null="true" />
+    <property name="Chave" column="chave" type="string" not-null="true" />
+    <property name="Valor" column="valor" type="string" not-null="false" />
+    <property name="Validade" column="validade" type="DateTime" not-null="true" />
   </class>
 </hibernate-mapping>

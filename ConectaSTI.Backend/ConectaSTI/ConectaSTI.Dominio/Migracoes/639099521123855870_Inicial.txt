@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS integracao (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
-    url VARCHAR(500) NOT NULL, -- Mapeado de [Obrigar]
+    url VARCHAR(500) NOT NULL,
     token VARCHAR(500)
 );
 
@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS funcao (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
-    nome VARCHAR(255) NOT NULL, -- Mapeado de [Obrigar]
-    corpo_da_funcao TEXT NOT NULL, -- Mapeado de [Obrigar]
+    nome VARCHAR(255) NOT NULL,
+    corpo_da_funcao TEXT NOT NULL,
     parametro TEXT
 );
 
@@ -24,14 +24,24 @@ CREATE TABLE IF NOT EXISTS fluxo (
     nome VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS storage (
+    id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
+    chave VARCHAR(255) NOT NULL,
+    valor TEXT,
+    validade TIMESTAMP NOT NULL
+);
+
 -- 2. Criação das tabelas com dependências (Chaves Estrangeiras)
 
 CREATE TABLE IF NOT EXISTS end_point (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
-    recurso VARCHAR(255) NOT NULL, -- Mapeado de [Obrigar]
-    integracao_id BIGINT NOT NULL, -- Mapeado de [Obrigar]
+    recurso VARCHAR(255) NOT NULL,
+    integracao_id BIGINT NOT NULL,
+    verbo INT NOT NULL,
     CONSTRAINT fk_end_point_integracao FOREIGN KEY (integracao_id) REFERENCES integracao (id) ON DELETE CASCADE
 );
 
@@ -39,26 +49,31 @@ CREATE TABLE IF NOT EXISTS no (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
-    tipo INT NOT NULL, -- Mapeado de [Obrigar]
+    tipo INT NOT NULL,
+    body TEXT,
+    headers TEXT,
     funcao_id BIGINT NULL,
     end_point_id BIGINT NULL,
+    chave_valor VARCHAR(255),
     CONSTRAINT fk_no_funcao FOREIGN KEY (funcao_id) REFERENCES funcao (id) ON DELETE SET NULL,
     CONSTRAINT fk_no_end_point FOREIGN KEY (end_point_id) REFERENCES end_point (id) ON DELETE SET NULL
 );
-
 
 CREATE TABLE IF NOT EXISTS operacao (
     id BIGSERIAL PRIMARY KEY,
     criadoem TIMESTAMP NULL,
     ultimaalteracao TIMESTAMP NULL,
-    body TEXT,
-    header TEXT,
-    ordem INT NOT NULL, -- Mapeado de [Obrigar]
-    no_id BIGINT NOT NULL, -- Mapeado de [Obrigar]
-    fluxo_id BIGINT NOT NULL, -- Mapeado de [Obrigar]
+    ordem INT NOT NULL,
+    no_id BIGINT NOT NULL,
+    fluxo_id BIGINT NOT NULL,
     repetir BOOLEAN NOT NULL DEFAULT FALSE,
-    erro INT NOT NULL, -- Mapeado de [Obrigar] (Tem que fazer nengue)
+    erro INT NOT NULL,
     maximo_repeticao INT NOT NULL DEFAULT 0,
+    max_retries INT NOT NULL DEFAULT 0,
+    backoff_type INT NOT NULL DEFAULT 1,
+    backoff_delay INT NOT NULL DEFAULT 0,
+    backoff_multiplier DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    timeout INT NOT NULL DEFAULT 30000,
     CONSTRAINT fk_operacao_no FOREIGN KEY (no_id) REFERENCES no (id) ON DELETE CASCADE,
     CONSTRAINT fk_operacao_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
 );

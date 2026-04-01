@@ -7,12 +7,12 @@ namespace ConectaSTI.Api.Extensoes
     {
         public static IServiceCollection AddServicosConectaSti(this IServiceCollection services)
         {
-            services.AddScoped<ServicoEndPoint>();
-            services.AddScoped<ServicoFluxo>();
-            services.AddScoped<ServicoFuncao>();
-            services.AddScoped<ServicoIntegracao>();
-            services.AddScoped<ServicoNo>();
-            services.AddScoped<ServicoOperacao>();
+            services.AddTransient<ServicoEndPoint>();
+            services.AddTransient<ServicoFluxo>();
+            services.AddTransient<ServicoFuncao>();
+            services.AddTransient<ServicoIntegracao>();
+            services.AddTransient<ServicoNo>();
+            services.AddTransient<ServicoOperacao>();
 
             return services;
         }

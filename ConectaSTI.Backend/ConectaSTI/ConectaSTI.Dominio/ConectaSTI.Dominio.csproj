@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <None Remove="Mapeamentos\EndPoint.hbm.xml" />
-    <None Remove="Migracoes\639099521123855868_Inicial.txt" />
   </ItemGroup>
 
   <ItemGroup>

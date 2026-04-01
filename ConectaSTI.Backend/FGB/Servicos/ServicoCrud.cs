@@ -1,4 +1,5 @@
-﻿using FGB.Entidades;
+﻿using FGB.Dominio.Extensoes;
+using FGB.Entidades;
 using FGB.IRepositorios;
 using System;
 using System.Collections.Generic;
@@ -82,6 +83,7 @@ namespace FGB.Servicos
             {
                 foreach (var entidade in entidades)
                 {
+                    entidade.VincularColecoes();
                     entidade.CriadoEm = entidade.CriadoEm ?? DateTime.Now;
                     entidade.UltimaAlteracao = DateTime.Now;
                     repo.Inclui(entidade);
@@ -96,6 +98,7 @@ namespace FGB.Servicos
             {
                 foreach (var entidade in entidades)
                 {
+                    entidade.VincularColecoes();
                     entidade.CriadoEm = DateTime.Now;
                     entidade.UltimaAlteracao = DateTime.Now;
                     await repo.IncluiAsync(entidade);
@@ -161,6 +164,7 @@ namespace FGB.Servicos
         {
             if (!ProcessoMerge(entidade, entidadeOld => MakeCrudTransaction(repo =>
             {
+                entidade.VincularColecoes();
                 entidade.UltimaAlteracao = DateTime.Now;
                 entidade.CriadoEm = entidadeOld.CriadoEm;
                 entidade = repo.Merge(entidade);
@@ -176,6 +180,7 @@ namespace FGB.Servicos
         {
             return await ProcessoMergeAsync(entidade, async entidadeOld => await MakeCrudTransactionAsync(async repo =>
             {
+                entidade.VincularColecoes();
                 entidade.UltimaAlteracao = DateTime.Now;
                 entidade.CriadoEm = entidadeOld.CriadoEm;
                 entidade = await repo.MergeAsync(entidade);
