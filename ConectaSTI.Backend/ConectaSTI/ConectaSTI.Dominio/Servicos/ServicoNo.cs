@@ -15,6 +15,7 @@ public class ServicoNo : ServicoCrud<No>
 
     public override bool Validacoes(No entidade)
     {
+        Mensagens.Clear();
         if (entidade == null)
         {
             Mensagens.Add("Nó é obrigatório.", true);
@@ -59,7 +60,8 @@ public class ServicoNo : ServicoCrud<No>
         if (string.IsNullOrEmpty(entidade.ChaveValor))
             Mensagens.Add("ChaveValor é obrigatória para nós do tipo SalvarStorage.", true);
         
-        No storageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Id != entidade.Id).FirstOrDefault();
+        No storageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Id != entidade.Id && s.Tipo == TipoNo.SalvarStorage)
+            .FirstOrDefault();
         if (storageExistente != null)
             Mensagens.Add("Já existe um nó com a mesma ChaveValor.", true);
     }

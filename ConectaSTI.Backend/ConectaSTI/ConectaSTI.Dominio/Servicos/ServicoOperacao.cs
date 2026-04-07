@@ -15,6 +15,7 @@ public class ServicoOperacao : ServicoCrud<Operacao>
 
     public override bool Validacoes(Operacao entidade)
     {
+        Mensagens.Clear();
         if (entidade == null)
         {
             Mensagens.Add("Operação é obrigatória.", true);
@@ -22,7 +23,6 @@ public class ServicoOperacao : ServicoCrud<Operacao>
         }
 
         ValidarOrdem(entidade);
-        ValidarFluxoExiste(entidade);
         ValidarNoExiste(entidade);
         ValidarOrdemUnica(entidade);
         ValidarPoliticaRepeticao(entidade);
@@ -34,13 +34,6 @@ public class ServicoOperacao : ServicoCrud<Operacao>
     {
         if (entidade.Ordem <= 0)
             Mensagens.Add("Ordem deve ser maior que zero.", true);
-    }
-
-    private void ValidarFluxoExiste(Operacao entidade)
-    {
-        Fluxo fluxo = _consulta.Retorna<Fluxo>(entidade.FluxoId);
-        if (fluxo == null)
-            Mensagens.Add("Fluxo não existe. Operações só podem ser criadas vinculadas a um Fluxo.", true);
     }
 
     private void ValidarNoExiste(Operacao entidade)

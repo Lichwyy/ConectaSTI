@@ -9,18 +9,17 @@ namespace ConectaSTI.Dominio.Servicos;
 public class ServicoFluxo : ServicoCrud<Fluxo>
 {
     private ServicoOperacao _servicoOperacao;
-    private ServicoNo _servicoNo;
     private IRepositorioConsulta _consulta;
     
     public ServicoFluxo(IRepositorioSessao repositorio) : base(repositorio)
     {
         _consulta = Repositorio.GetRepositorioConsulta();
         _servicoOperacao = new ServicoOperacao(repositorio);
-        _servicoNo = new ServicoNo(repositorio);
     }
 
     public override bool Validacoes(Fluxo entidade)
     {
+        Mensagens.Clear();
         if (entidade == null)
         {
             Mensagens.Add("Fluxo é obrigatório.", true);
@@ -50,11 +49,7 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
         foreach (var operacao in entidade.Operacoes)
         {
             _servicoOperacao.Validacoes(operacao);
-        }
-
-        if (_servicoOperacao.Mensagens.Any(m => m.Erro))
-        {
-            Mensagens.AddRange(_servicoOperacao.Mensagens);
+            _servicoOperacao.Mensagens.ForEach(m => Mensagens.Add($"Operação Ordem {operacao.Ordem}: {m.Mensagem}", m.Erro));
         }
     }
 

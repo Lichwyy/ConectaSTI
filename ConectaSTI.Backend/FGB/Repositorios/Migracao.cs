@@ -45,7 +45,10 @@ namespace FGB.Dominio.Repositorios
 					continue;
 				}
 
-				ApplyMigrationFile(file, fileName);
+				if (ApplyMigrationFile(file, fileName))
+				{
+					alreadyApplied.Add(fileName);
+				}
 			}
 
 			_logger.LogInformation("Migracoes finalizadas com sucesso.");
@@ -83,28 +86,37 @@ namespace FGB.Dominio.Repositorios
 			return new HashSet<string>(names ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
 		}
 
-		private void ApplyMigrationFile(string path, string fileName)
+		private bool ApplyMigrationFile(string path, string fileName)
 		{
 			var sql = File.ReadAllText(path).Trim();
 			if (string.IsNullOrWhiteSpace(sql))
 			{
 				_logger.LogInformation("Pulando arquivo de migracao vazio: {Migracao}", fileName);
-				return;
+				return false;
 			}
 
 			using var session = _sessionFactory.OpenSession();
 			using var transaction = session.BeginTransaction();
 			try
 			{
+				// Claim migration execution atomically to prevent parallel instances from running the same script.
+				var insert = session.CreateSQLQuery($"INSERT INTO {TabelaMigracoes} ({ColunaNomeArquivo}) VALUES (:nomeArquivo) ON CONFLICT ({ColunaNomeArquivo}) DO NOTHING");
+				insert.SetParameter("nomeArquivo", fileName);
+				var insertedRows = insert.ExecuteUpdate();
+
+				if (insertedRows == 0)
+				{
+					transaction.Rollback();
+					_logger.LogInformation("Pulando migracao aplicada em paralelo por outra instancia: {Migracao}", fileName);
+					return false;
+				}
+
 				// Execute script exactly as provided; each file runs atomically in its own transaction.
 				session.CreateSQLQuery(sql).ExecuteUpdate();
 
-				var insert = session.CreateSQLQuery($"INSERT INTO {TabelaMigracoes} ({ColunaNomeArquivo}) VALUES (:nomeArquivo)");
-				insert.SetParameter("nomeArquivo", fileName);
-				insert.ExecuteUpdate();
-
 				transaction.Commit();
 				_logger.LogInformation("Migracao aplicada com sucesso: {Migracao}", fileName);
+				return true;
 			}
 			catch (Exception ex)
 			{

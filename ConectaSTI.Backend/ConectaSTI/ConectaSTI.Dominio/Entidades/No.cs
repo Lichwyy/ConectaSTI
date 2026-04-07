@@ -18,13 +18,13 @@ public class No : EntidadeBase
     {
         if (Tipo == TipoNo.FuncaoJS)
         {
-            if (!FuncaoId.HasValue || EndPointId.HasValue)
+            if (!FuncaoId.HasValue || EndPointId.HasValue || !string.IsNullOrWhiteSpace(ChaveValor))
                 throw new InvalidOperationException("No do tipo FuncaoJS deve ter Funcao e nao deve ter EndPoint ou chave.");
         }
 
         if (Tipo == TipoNo.Requisicao)
         {
-            if (!EndPointId.HasValue || FuncaoId.HasValue)
+            if (!EndPointId.HasValue || FuncaoId.HasValue || !string.IsNullOrWhiteSpace(ChaveValor))
                 throw new InvalidOperationException("No do tipo Requisicao deve ter EndPoint e nao deve ter Funcao ou Chave.");
         }
 

@@ -1,6 +1,8 @@
 using ConectaSTI.Api.Extensoes;
+using FGB.Dominio.Interfaces.Utilitarios;
 using FGB.API.Utils;
 using FGB.Dominio.Repositorios;
+using FGB.Dominio.Servicos;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
 using NHibernate.Cfg;
@@ -43,6 +45,9 @@ public class Program
 
         builder.Services.AddTransient<IRepositorioSessao, RepositorioSessao>();
         builder.Services.AddTransient<IMigracao, Migracao>();
+
+        builder.Services.Configure<ServicoRequestOptions>(builder.Configuration.GetSection("ServicoRequest"));
+        builder.Services.AddTransient<IRequest, ServicoRequest>();
 
         builder.Services.AddAutoMapperProfiles();
         builder.Services.AddServicosConectaSti();

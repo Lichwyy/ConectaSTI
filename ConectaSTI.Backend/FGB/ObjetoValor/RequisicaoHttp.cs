@@ -14,7 +14,6 @@ namespace FGB.Dominio.ObjetoValor
         {
             Headers = new WebHeaderCollection();
             TimeoutSegundos = 100;
-            Verbo = VerboHttp.GET;
             Accept = AcceptProxy.Json;
             ContentType = AcceptProxy.Json;
         }
@@ -28,12 +27,15 @@ namespace FGB.Dominio.ObjetoValor
                     _urlRequest = Url;
                     if (QueryParams is string q)
                     {
-                        if (q[0] != '?')
+                        if (!string.IsNullOrWhiteSpace(q))
                         {
-                            _urlRequest += "?";
-                        }
+                            if (!q.StartsWith("?", StringComparison.Ordinal))
+                            {
+                                _urlRequest += "?";
+                            }
 
-                        _urlRequest += QueryParams;
+                            _urlRequest += q;
+                        }
                     }
                     else if (QueryParams != null)
                     {
