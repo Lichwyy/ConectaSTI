@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Mapeamentos\EndPoint.hbm.xml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Mapeamentos\*" />
   </ItemGroup>
 

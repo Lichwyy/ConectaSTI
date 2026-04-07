@@ -41,7 +41,10 @@ namespace FGB.Dominio.ObjetoValor
                     {
                         var properties = PegarValorPropriedades();
                         var parameters = string.Join("&", properties.ToArray());
-                        _urlRequest = $"{Url}?{parameters}";
+                        if (!string.IsNullOrWhiteSpace(parameters))
+                        {
+                            _urlRequest = $"{Url}?{parameters}";
+                        }
                     }
                 }
                 return _urlRequest;
@@ -55,7 +58,7 @@ namespace FGB.Dominio.ObjetoValor
         public WebHeaderCollection Headers { get; set; }
         public object QueryParams { get => _queryParams; set { _queryParams = value; _urlRequest = ""; } }
         public object Body { get; set; }
-        public string BodyRaw { get; set; }
+        public string BodyRaw { get; set; }  // a gente monta no serviço, fica tranquilo
         public int TimeoutSegundos { get; set; }
         public bool IgnorarCertificadoSsl { get; set; }
 
