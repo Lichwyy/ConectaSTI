@@ -28,7 +28,21 @@ namespace FGB.Dominio.Extensoes
                         continue;
                     }
 
-                    var type = colecao[0]!.GetType();
+                    Type type = null;
+                    foreach (var item in colecao)
+                    {
+                        if (item != null)
+                        {
+                            type = item.GetType();
+                            break;
+                        }
+                    }
+
+                    if (type == null)
+                    {
+                        continue;
+                    }
+
                     var sourceType = source.GetType().Name;
                     var property = type.GetProperty(sourceType);
                     if (property == null)
@@ -37,6 +51,11 @@ namespace FGB.Dominio.Extensoes
                     }
                     foreach (var item in colecao)
                     {
+                        if (item == null)
+                        {
+                            continue;
+                        }
+
                         property.SetValue(item, source);
                         if (item is EntidadeBase entidadeBase)
                         {
