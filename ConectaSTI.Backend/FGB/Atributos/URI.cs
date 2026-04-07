@@ -4,8 +4,6 @@ namespace FGB.Dominio.Atributos
 {
     public class UriAttribute : ValidationAttribute
     {
-        public dynamic Dados { get; set; }
-
         public UriAttribute()
         {
             base.ErrorMessage = "main.validacoes.uri";
@@ -24,10 +22,6 @@ namespace FGB.Dominio.Atributos
                 return ValidationResult.Success;
             }
 
-            Dados = new
-            {
-                Url = text
-            };
             return new ValidationResult(base.ErrorMessage, new string[1] { validationContext.MemberName });
         }
     }
