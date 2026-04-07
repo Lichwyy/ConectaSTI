@@ -58,8 +58,11 @@ public class ServicoNo : ServicoCrud<No>
     private void ValidarSalvarStorage(No entidade)
     {
         if (string.IsNullOrEmpty(entidade.ChaveValor))
+        {
             Mensagens.Add("ChaveValor é obrigatória para nós do tipo SalvarStorage.", true);
-        
+            return;
+        }
+            
         No storageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Id != entidade.Id && s.Tipo == TipoNo.SalvarStorage)
             .FirstOrDefault();
         if (storageExistente != null)
@@ -69,7 +72,10 @@ public class ServicoNo : ServicoCrud<No>
     private void ValidarPegarStorage(No entidade)
     {
         if (string.IsNullOrEmpty(entidade.ChaveValor))
+        {
             Mensagens.Add("ChaveValor é obrigatória para nós do tipo PegarStorage.", true);
+            return;
+        }
 
         No salvarStorageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Tipo == TipoNo.SalvarStorage).FirstOrDefault();
         if (salvarStorageExistente == null)
@@ -79,8 +85,10 @@ public class ServicoNo : ServicoCrud<No>
     private void ValidarRequisicao(No entidade)
     {
         if (!entidade.EndPointId.HasValue)
+        {
             Mensagens.Add("EndPointId é obrigatório para nós do tipo Requisicao.", true);
-
+            return;
+        }
 
         var endpoint = _consulta.Retorna<EndPoint>(entidade.EndPointId.Value);
         if (endpoint == null)
@@ -90,7 +98,10 @@ public class ServicoNo : ServicoCrud<No>
     private void ValidarFuncao(No entidade)
     {
         if (!entidade.FuncaoId.HasValue)
+        {
             Mensagens.Add("FuncaoId é obrigatória para nós do tipo FuncaoJS.", true);
+            return;
+        }
 
         var funcao = _consulta.Retorna<Funcao>(entidade.FuncaoId.Value);
         if (funcao == null)

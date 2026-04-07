@@ -95,7 +95,7 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
 
         foreach (var operacao in operacoesOrdenadas)
         {
-            No no = _consulta.Retorna<No>(operacao.NoId);
+            No no = _consulta.Retorna<No>(operacao.NoId); // depois pretendo colocar uma interface de cache, no momento deixa assim
             if (no == null) continue;
 
             if (no.Tipo == TipoNo.SalvarStorage && !string.IsNullOrEmpty(no.ChaveValor))

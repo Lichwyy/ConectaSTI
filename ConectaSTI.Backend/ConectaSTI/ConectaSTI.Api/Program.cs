@@ -59,7 +59,7 @@ public class Program
         builder.Services.AddAutoMapperProfiles();
         builder.Services.AddServicosConectaSti();
 
-        builder.Services.AddCors(options =>
+        builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {
             options.AddPolicy("AllowAll", policy =>
             {
