@@ -1,13 +1,13 @@
 using AutoMapper;
 using ConectaSTI.Dominio.Entidades;
+using ConectaSTI.Dominio.Servicos;
 using FGB.Api.Controllers;
-using FGB.Servicos;
 
 namespace ConectaSTI.Api.Controllers;
 
 public class FluxoController : CrudControllerBase<Fluxo, Fluxo>
 {
-    public FluxoController(ServicoCrud<Fluxo> servico, IMapper mapper) : base(servico, mapper)
+    public FluxoController(ServicoFluxo servico, IMapper mapper) : base(servico, mapper)
     {
     }
 }

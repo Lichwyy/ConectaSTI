@@ -1,59 +1,19 @@
 ﻿using FGB.Entidades;
 using FGB.Servicos;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OData.Query;
 using AutoMapper;
-using AutoMapper.QueryableExtensions;
 
 namespace FGB.Api.Controllers
 {
-    [ApiController]
-    [Route("api/[Controller]")]
-    public abstract class CrudControllerBase<T, TDto> : ControllerBase
+    public abstract class CrudControllerBase<T, TDto> : ConsultaControllerBase<T, TDto>
         where T : EntidadeBase
     {
         protected readonly ServicoCrud<T> _servico;
-        protected readonly IMapper _mapper;
 
         protected CrudControllerBase(ServicoCrud<T> servico, IMapper mapper)
+            : base(servico, mapper)
         {
             _servico = servico;
-            _mapper = mapper;
-        }
-
-        [HttpGet]
-        [EnableQuery] // suporte a OData ($filter, $top, $skip, etc.)
-        public virtual IActionResult GetOData()
-        {
-            if (typeof(T) != typeof(TDto))
-            {
-                var listaDto = _servico.Consulta()
-                    .ProjectTo<TDto>(_mapper.ConfigurationProvider); // converte direto no banco
-
-                return Ok(listaDto);
-            }
-            else
-            {
-                var lista = _servico.Consulta();
-                return Ok(lista);
-            }
-        }
-
-        [HttpGet("{id:long}")]
-        public virtual IActionResult GetById(long id)
-        {
-            var entity = _servico.Retorna(id);
-            if (entity == null)
-                return NotFound(new { mensagem = $"{typeof(T).Name} não encontrado." });
-            if (typeof(T) != typeof(TDto))
-            {
-                var dto = _mapper.Map<TDto>(entity); // AutoMapper faz o mapeamento
-                return Ok(dto);
-            }
-            else
-            {
-                return Ok(entity);
-            }
         }
 
         [HttpPost]
@@ -94,4 +54,4 @@ namespace FGB.Api.Controllers
             return UnprocessableEntity(_servico.Mensagens);
         }
     }
-};
+}

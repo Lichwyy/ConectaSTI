@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2"  assembly="ConectaSTI.Dominio"  namespace="ConectaSTI.Dominio.Entidades">
+  <class name="No" table="no" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="id">
+      <generator class="sequence">
+        <param name="sequence">no_id_seq</param>
+      </generator>
+    </id>
+
+    <property   name="CriadoEm"           column="criadoem"           type="DateTime"   not-null="false"  />
+    <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
+
+
+    <property name="Tipo" column="tipo" not-null="true" />
+    <property name="Body" column="body" type="string" not-null="false" />
+    <property name="Headers" column="headers" type="string" not-null="false" />
+    <property name="FuncaoId" column="funcao_id" type="long" not-null="false" />
+    <property name="EndPointId" column="end_point_id" type="long" not-null="false" />
+    <property name="ChaveValor" column="chave_valor" type="string" not-null="false" />
+  </class>
+</hibernate-mapping>

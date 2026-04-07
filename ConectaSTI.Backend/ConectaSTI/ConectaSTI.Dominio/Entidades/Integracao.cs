@@ -5,7 +5,7 @@ namespace ConectaSTI.Dominio.Entidades;
 
 public class Integracao : EntidadeBase
 {
-    [Obrigar]
+    [Obrigar, Uri]
     public string Url { get; set; }
     public string Token { get; set; }
 }
