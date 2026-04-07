@@ -41,7 +41,7 @@ namespace FGB.Api.Controllers
         {
             var entity = _servicoConsulta.Retorna(id);
             if (entity == null)
-                return NotFound(new { mensagem = $"{typeof(T).Name} nao encontrado." });
+                return NotFound(new { mensagem = $"{typeof(T).Name} não encontrado." });
 
             if (typeof(T) != typeof(TDto))
             {

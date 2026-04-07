@@ -22,6 +22,8 @@ public class ServicoOperacao : ServicoCrud<Operacao>
             return false;
         }
 
+        SincronizarFluxo(entidade);
+
         ValidarOrdem(entidade);
         ValidarNoExiste(entidade);
         ValidarOrdemUnica(entidade);
@@ -73,6 +75,19 @@ public class ServicoOperacao : ServicoCrud<Operacao>
         catch (InvalidOperationException ex)
         {
             Mensagens.Add(ex.Message, true);
+        }
+    }
+
+    private static void SincronizarFluxo(Operacao entidade)
+    {
+        if (entidade.Fluxo != null && entidade.FluxoId <= 0)
+        {
+            entidade.FluxoId = entidade.Fluxo.Id;
+        }
+
+        if (entidade.Fluxo == null && entidade.FluxoId > 0)
+        {
+            entidade.Fluxo = new Fluxo { Id = entidade.FluxoId };
         }
     }
 }

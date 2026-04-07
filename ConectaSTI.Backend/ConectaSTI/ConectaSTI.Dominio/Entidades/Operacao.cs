@@ -2,6 +2,7 @@ using ConectaSTI.Dominio.ObjetosValor;
 using FGB.Dominio.Atributos;
 using FGB.Entidades;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ConectaSTI.Dominio.Entidades;
 
@@ -11,8 +12,9 @@ public class Operacao : EntidadeBase
     public int Ordem { get; set; }
     [Obrigar(typeof(No))]
     public long NoId { get; set; }
-    [Obrigar(typeof(Fluxo))]
     public long FluxoId { get; set; }
+    [JsonIgnore]
+    public Fluxo Fluxo { get; set; }
     public bool Repetir { get; set; } = false;
     [Obrigar]
     public TipoErro Erro { get; set; } // Tem que fazer nengue

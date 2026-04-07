@@ -32,8 +32,15 @@ public class Program
 
         builder.Services.AddSingleton(_ =>
         {
+            var connectionString = builder.Configuration.GetConnectionString("Default");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("Connection string 'ConnectionStrings:Default' não configurada. Defina via environment variable 'ConnectionStrings__Default' ou user-secrets.");
+            }
+
             var cfg = new Configuration();
             cfg.Configure(Path.Combine(AppContext.BaseDirectory, "nhibernate.cfg.xml"));
+            cfg.SetProperty(NHibernate.Cfg.Environment.ConnectionString, connectionString);
             return cfg;
         });
 
