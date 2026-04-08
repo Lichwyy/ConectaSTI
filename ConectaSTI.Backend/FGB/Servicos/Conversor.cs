@@ -19,7 +19,6 @@ namespace FGB.Dominio.Servicos
                 WriteIndented = indent
             };
 
-
             switch (tipoSerializacao)
             {
                 case TipoSerializacao.CamelCase:
@@ -31,8 +30,6 @@ namespace FGB.Dominio.Servicos
             }
 
             return JsonSerializer.Serialize(valores, serializadorSettings);
-
-
         }
 
         public T Desserializar<T>(string estrutura, TipoSerializacao tipoSerializacao = TipoSerializacao.CamelCase)

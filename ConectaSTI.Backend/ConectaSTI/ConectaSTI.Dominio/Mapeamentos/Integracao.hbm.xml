@@ -11,7 +11,7 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Url" column="url" type="string" not-null="true" />
-    <property name="Token" column="token" type="string" not-null="false" />
+    <property name="Url"        column="url"    type="string" not-null="true" />
+    <property name="Token"      column="token"  type="string" not-null="false" />
   </class>
 </hibernate-mapping>

@@ -11,8 +11,8 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Recurso" column="recurso" type="string" not-null="true" />
-    <property name="IntegracaoId" column="integracao_id" type="long" not-null="true" />
-    <property name="Verbo" column="verbo" not-null="true" />
+    <property name="Recurso"        column="recurso"            type="string"       not-null="true" />
+    <property name="IntegracaoId"   column="integracao_id"      type="long"         not-null="true" />
+    <property name="Verbo"          column="verbo"                                  not-null="true" />
   </class>
 </hibernate-mapping>

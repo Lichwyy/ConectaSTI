@@ -11,8 +11,8 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Nome" column="nome" type="string" not-null="true" />
-    <property name="CorpoDaFuncao" column="corpo_da_funcao" type="string" not-null="true" />
-    <property name="Parametro" column="parametro" type="string" not-null="false" />
+    <property name="Nome"           column="nome"               type="string" not-null="true" />
+    <property name="CorpoDaFuncao"  column="corpo_da_funcao"    type="string" not-null="true" />
+    <property name="Parametro"      column="parametro"          type="string" not-null="false" />
   </class>
 </hibernate-mapping>

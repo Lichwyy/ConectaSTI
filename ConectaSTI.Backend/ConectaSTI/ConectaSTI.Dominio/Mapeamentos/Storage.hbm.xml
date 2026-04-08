@@ -11,8 +11,8 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Chave" column="chave" type="string" not-null="true" />
-    <property name="Valor" column="valor" type="string" not-null="false" />
-    <property name="Validade" column="validade" type="DateTime" not-null="true" />
+    <property name="Chave"      column="chave"      type="string"       not-null="true" />
+    <property name="Valor"      column="valor"      type="string"       not-null="false" />
+    <property name="Validade"   column="validade"   type="DateTime"     not-null="true" />
   </class>
 </hibernate-mapping>
