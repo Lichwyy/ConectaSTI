@@ -4,12 +4,12 @@ using FGB.Servicos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,13 +22,16 @@ namespace FGB.Dominio.Servicos
 
         private readonly ServicoRequestOptions _options;
         private readonly ILogger<ServicoRequest> _logger;
+        private readonly IConverter _converter;
 
         public ServicoRequest(
             IOptions<ServicoRequestOptions> options,
-            ILogger<ServicoRequest> logger)
+            ILogger<ServicoRequest> logger,
+            IConverter converter)
         {
             _options = options?.Value ?? new ServicoRequestOptions();
             _logger = logger;
+            _converter = converter ?? throw new ArgumentNullException(nameof(converter));
         }
 
         public RespostaHttp<T> Get<T>(RequisicaoHttp request)
@@ -289,7 +292,7 @@ namespace FGB.Dominio.Servicos
             {
                 if (!string.IsNullOrWhiteSpace(resposta.RespostaBody))
                 {
-                    resposta.Resposta = Desserializar<T>(resposta.Accept, resposta.RespostaBody);
+                    resposta.Resposta = DesserializarResposta<T>(resposta.Accept, resposta.RespostaBody);
                 }
 
                 return;
@@ -341,7 +344,7 @@ namespace FGB.Dominio.Servicos
         {
             if (response.StatusCode == (HttpStatusCode)422 && resposta.Accept != AcceptProxy.Text)
             {
-                var mensagens = Desserializar<List<MensagemRetorno>>(resposta.Accept, resposta.RespostaBody);
+                var mensagens = DesserializarResposta<List<MensagemRetorno>>(resposta.Accept, resposta.RespostaBody);
                 if (mensagens != null && mensagens.Count > 0)
                 {
                     resposta.Retorno = mensagens;
@@ -356,7 +359,7 @@ namespace FGB.Dominio.Servicos
             resposta.Retorno.Add(new MensagemRetorno(mensagem, true));
         }
 
-        public T Desserializar<T>(AcceptProxy tipo, string sr)
+        private T DesserializarResposta<T>(AcceptProxy tipo, string sr)
         {
             if (string.IsNullOrWhiteSpace(sr))
             {
@@ -366,7 +369,7 @@ namespace FGB.Dominio.Servicos
             switch (tipo)
             {
                 case AcceptProxy.Json:
-                    return JsonSerializer.Deserialize<T>(sr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    return _converter.Desserializar<T>(sr, TipoSerializacao.CamelCase);
                 case AcceptProxy.Xml:
                 case AcceptProxy.Text:
                 case AcceptProxy.Html:
@@ -382,7 +385,7 @@ namespace FGB.Dominio.Servicos
             }
         }
 
-        private static string ObterBodyRaw(RequisicaoHttp request)
+        private string ObterBodyRaw(RequisicaoHttp request)
         {
             if (!string.IsNullOrWhiteSpace(request.BodyRaw))
             {
@@ -395,7 +398,7 @@ namespace FGB.Dominio.Servicos
             }
 
             return request.ContentType == AcceptProxy.Json
-                ? JsonSerializer.Serialize(request.Body)
+                ? _converter.Serializar(request.Body, TipoSerializacao.None)
                 : request.Body.ToString();
         }
 
