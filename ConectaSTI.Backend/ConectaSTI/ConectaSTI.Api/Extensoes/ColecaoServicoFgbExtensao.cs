@@ -36,6 +36,7 @@ namespace ConectaSTI.Api.Extensoes
                 sp.GetRequiredService<NHSessionFactory>().OpenSession());
 
             services.AddTransient<IRepositorioSessao, RepositorioSessao>();
+            services.AddTransient<IRepositorioConsulta, RepositorioConsulta>();
             services.AddTransient<IMigracao, Migracao>();
             services.AddScoped<IConverter, Conversor>();
 

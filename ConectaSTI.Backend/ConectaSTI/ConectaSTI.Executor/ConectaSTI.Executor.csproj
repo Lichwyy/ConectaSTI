@@ -6,4 +6,8 @@
 		<Nullable>disable</Nullable>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\ConectaSTI.Dominio\ConectaSTI.Dominio.csproj" />
+	</ItemGroup>
+
 </Project>

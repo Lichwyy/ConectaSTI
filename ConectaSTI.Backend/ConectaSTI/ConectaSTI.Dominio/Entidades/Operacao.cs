@@ -16,9 +16,10 @@ public class Operacao : EntidadeBase
     [JsonIgnore]
     public Fluxo Fluxo { get; set; }
     public bool Repetir { get; set; } = false;
+    //public bool UsarDadosFluxo { get; set; }
     [Obrigar]
     public TipoErro Erro { get; set; } // Tem que fazer nengue
-    public int MaximoRepeticao { get; set; }
+    public int MaximoRepeticao { get; set; } //apagar
 
     [Range(0, 10, ErrorMessage = "MaxRetries deve estar entre 0 e 10")]
     public int MaxRetries { get; set; } = 0;

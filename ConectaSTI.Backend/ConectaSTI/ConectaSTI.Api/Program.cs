@@ -2,6 +2,8 @@ using ConectaSTI.Api.Extensoes;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
 using System.Text.Json.Serialization;
+using ConectaSTI.Dominio.Interfaces;
+using ConectaSTI.Executor.Servicos;
 
 namespace ConectaSTI.Api;
 
@@ -25,6 +27,8 @@ public class Program
 
         builder.Services.AddFgb(builder.Configuration);
         builder.Services.AddServicosConectaSti();
+
+        builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {

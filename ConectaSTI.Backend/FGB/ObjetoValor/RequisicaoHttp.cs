@@ -51,7 +51,6 @@ namespace FGB.Dominio.ObjetoValor
             }
         }
         public string Url { get => _url; set { _url = value; _urlRequest = ""; } }
-        public string Rota { get; set; }
         public VerboHttp Verbo { get; set; }
         public AcceptProxy Accept { get; set; }
         public AcceptProxy ContentType { get; set; }

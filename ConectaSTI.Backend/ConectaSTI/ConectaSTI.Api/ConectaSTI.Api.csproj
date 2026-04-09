@@ -25,6 +25,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\FGB.Api\FGB.Api.csproj" />
       <ProjectReference Include="..\ConectaSTI.Dominio\ConectaSTI.Dominio.csproj" />
+      <ProjectReference Include="..\ConectaSTI.Executor\ConectaSTI.Executor.csproj" />
     </ItemGroup>
 
 </Project>
