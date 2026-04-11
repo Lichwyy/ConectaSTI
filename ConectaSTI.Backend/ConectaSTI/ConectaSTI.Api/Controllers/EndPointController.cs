@@ -25,7 +25,6 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
     {
         var no = _repositorioConsulta.Consulta<No>(no => no.Id == NoId).FirstOrDefault();
 
-        _request.EnviarRequisicao(no);
-        return Ok();
+        return Ok(_request.EnviarRequisicao(no));
     }
 }

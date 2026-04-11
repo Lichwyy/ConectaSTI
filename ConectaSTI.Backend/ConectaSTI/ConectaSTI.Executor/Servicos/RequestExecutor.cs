@@ -23,35 +23,47 @@ namespace ConectaSTI.Executor.Servicos
         }
         
         
-        public RespostaHttp<object> EnviarRequisicao(No nozinho)
+        public object EnviarRequisicao(No nozinho)
         {
             RequisicaoHttp request =  new RequisicaoHttp();
             
             EndPoint endpointzinho = _repositorioConsulta.Consulta<EndPoint>(x => x.Id == nozinho.EndPointId).FirstOrDefault();
             Integracao integracaozinha = _repositorioConsulta.Consulta<Integracao>(x => x.Id == endpointzinho.IntegracaoId).FirstOrDefault();
-
+            
             // Montagem do Header
-            Dictionary<string, string> headerDic = _converter.Desserializar<Dictionary<string, string>>(nozinho.Headers);
-
-            foreach (var item in headerDic)
+            if (nozinho.Headers != null)
             {
-                request.Headers.Add(item.Key, item.Value);
+                Dictionary<string, string> headerDic = _converter.Desserializar<Dictionary<string, string>>(nozinho.Headers);
+                
+                foreach (var item in headerDic)
+                {
+                    request.Headers.Add(item.Key, item.Value);
+                }
             }
 
             if (integracaozinha != null)
             {
                 var token = integracaozinha.Token;
-            
-                request.Headers.Add("Authorization", $"Bearer {token}");
+
+                if (token != null)
+                {
+                    request.Headers.Add("Authorization", $"Bearer {token}");
+                }
             }
             
             // Montagem do Body
-            request.Body = _converter.Desserializar<object>(nozinho.Body);
+            if (nozinho.Body != null)
+            {
+                request.Body = _converter.Desserializar<object>(nozinho.Body);
+                
+            }
             
             // Montagem do Verbo
             request.Verbo = endpointzinho.Verbo;
             
-            return _request.Fetch<object>(request);
+            var cu = _request.Fetch<object>(request);
+
+            return cu;
         }
     }
 }
