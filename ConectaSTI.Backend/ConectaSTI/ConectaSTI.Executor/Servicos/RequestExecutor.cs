@@ -30,6 +30,15 @@ namespace ConectaSTI.Executor.Servicos
             EndPoint endpointzinho = _repositorioConsulta.Consulta<EndPoint>(x => x.Id == nozinho.EndPointId).FirstOrDefault();
             Integracao integracaozinha = _repositorioConsulta.Consulta<Integracao>(x => x.Id == endpointzinho.IntegracaoId).FirstOrDefault();
             
+            // Montagem da URL
+            if (integracaozinha != null && endpointzinho != null)
+            {
+                string baseURL = integracaozinha.Url?.TrimEnd('/');
+                string recurso = endpointzinho.Recurso?.TrimStart('/');
+                
+                request.Url = $"{baseURL}/{recurso}";
+            }
+            
             // Montagem do Header
             if (nozinho.Headers != null)
             {
