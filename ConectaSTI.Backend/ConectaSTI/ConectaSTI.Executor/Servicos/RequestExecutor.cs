@@ -70,9 +70,9 @@ namespace ConectaSTI.Executor.Servicos
             // Montagem do Verbo
             request.Verbo = endpointzinho.Verbo;
             
-            var cu = _request.Fetch<object>(request);
+            var resposta = _request.Fetch<object>(request);
 
-            return cu;
+            return resposta;
         }
     }
 }

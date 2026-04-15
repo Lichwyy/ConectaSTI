@@ -20,7 +20,7 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
         _repositorioConsulta = repositorioConsulta;
     }
 
-    [HttpPost("/penis/{NoId}")]
+    [HttpPost("/teste/{NoId}")]
     public IActionResult Testar(int NoId)
     {
         var no = _repositorioConsulta.Consulta<No>(no => no.Id == NoId).FirstOrDefault();
