@@ -10,4 +10,8 @@
 	  <ProjectReference Include="..\ConectaSTI.Dominio\ConectaSTI.Dominio.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="Jint" Version="4.8.0" />
+	</ItemGroup>
+
 </Project>

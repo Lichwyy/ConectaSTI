@@ -29,6 +29,7 @@ public class Program
         builder.Services.AddServicosConectaSti();
 
         builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
+        builder.Services.AddTransient<IFunctionExecutor, FunctionExecutor>();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {

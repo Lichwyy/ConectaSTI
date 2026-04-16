@@ -12,19 +12,29 @@ namespace ConectaSTI.Api.Controllers;
 public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
 {
     private readonly IRequestExecutor _request;
+    private readonly IFunctionExecutor _executor;
     private readonly IRepositorioConsulta _repositorioConsulta;
     
-    public EndPointController(ServicoEndPoint servico, IMapper mapper, IRequestExecutor request, IRepositorioConsulta repositorioConsulta) : base(servico, mapper)
+    public EndPointController(ServicoEndPoint servico, IMapper mapper, IRequestExecutor request, IRepositorioConsulta repositorioConsulta, IFunctionExecutor executor) : base(servico, mapper)
     {
         _request = request;
+        _executor = executor;
         _repositorioConsulta = repositorioConsulta;
     }
 
-    [HttpPost("/teste/{NoId}")]
+    [HttpPost("/testerequest/{NoId}")]
     public IActionResult Testar(int NoId)
     {
         var no = _repositorioConsulta.Consulta<No>(no => no.Id == NoId).FirstOrDefault();
 
         return Ok(_request.EnviarRequisicao(no));
+    }
+    
+    [HttpPost("/testefunction/{FuncaoId}")]
+    public IActionResult TestarFunction(int FuncaoId, [FromBody] object dadoAnterior)
+    {
+        var funcao = _repositorioConsulta.Consulta<Funcao>(funcao => funcao.Id == FuncaoId).FirstOrDefault();
+        
+        return Ok(_executor.Executar(funcao, dadoAnterior));
     }
 }
