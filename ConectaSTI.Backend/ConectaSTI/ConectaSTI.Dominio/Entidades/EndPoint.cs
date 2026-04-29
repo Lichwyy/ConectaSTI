@@ -12,4 +12,5 @@ public class EndPoint : EntidadeBase
     public long IntegracaoId { get; set; }
     [Obrigar]
     public VerboHttp Verbo { get; set; }
+    public string Descricao { get; set; }
 }
