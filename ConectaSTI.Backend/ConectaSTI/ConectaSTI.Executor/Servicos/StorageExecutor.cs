@@ -20,19 +20,36 @@ namespace ConectaSTI.Executor.Servicos
 
         public RespostaHttp<object> Salvar(No no)
         {
+            // Validando o No de entrada
+            if (no == null)
+            {
+                return new RespostaHttp<object>()
+                {
+                    Status = 400,
+                    Resposta = null,
+                    Retorno = new List<MensagemRetorno>()
+                    {
+                        new MensagemRetorno()
+                        {
+                            Mensagem = "O No não pode ser nulo."
+                        }
+                    }
+                };
+            }
+
             // Criação do objeto Storage a partir do No
             Storage storage = new Storage
             {
                 Chave = no.ChaveValor,
                 Valor = no.Body,
-                Validade = no.DataValidade
+                Validade = DateTime.Now.AddMinutes(no.TempoMinutoValidade)
             };
 
-            // Implementação do método Salvar
+            // Salvando o Storage usando o serviço de CRUD
             if (_servico.Inclui(storage))
                 return new RespostaHttp<object>()
                 {
-                    Status = 200,
+                    Status = 201,
                     Resposta = null,
                     Retorno = new List<MensagemRetorno>()
                     {
@@ -43,6 +60,7 @@ namespace ConectaSTI.Executor.Servicos
                     }
                 };
 
+            // Em caso de falha ao salvar, retornamos um erro.
             return new RespostaHttp<object>()
             {
                 Status = 500,
@@ -59,6 +77,7 @@ namespace ConectaSTI.Executor.Servicos
 
         public RespostaHttp<object> Pegar(string chave)
         {
+            // Validando a chave de entrada
             if (String.IsNullOrWhiteSpace(chave))
             {
                 return new RespostaHttp<object>()
@@ -75,8 +94,10 @@ namespace ConectaSTI.Executor.Servicos
                 };
             }
 
+            // Consultando o Storage usando a chave fornecida
             var storage = _servico.Consulta(x => x.Chave == chave).FirstOrDefault();
 
+            // Verificando se o Storage foi encontrado
             if (storage == null)
             {
                 return new RespostaHttp<object>()
@@ -92,8 +113,9 @@ namespace ConectaSTI.Executor.Servicos
                     }
                 };
             }
-            
-            if(storage.Expirado())
+
+            // Verificando se o valor armazenado expirou
+            if (storage.Expirado())
             {
                 return new RespostaHttp<object>()
                 {
@@ -109,9 +131,10 @@ namespace ConectaSTI.Executor.Servicos
                 };
             }
 
+            // Retornando o valor armazenado com sucesso
             return new RespostaHttp<object>()
             {
-                Status = 201,
+                Status = 200,
                 Resposta = storage.Valor,
                 Retorno = new List<MensagemRetorno>()
                 {

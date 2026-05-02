@@ -23,7 +23,7 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
         _repositorioConsulta = repositorioConsulta;
     }
 
-    [HttpPost("/testerequest/{NoId}")]
+    [HttpPost("/testerequest/{noId}")]
     public IActionResult Testar(long noId)
     {
         var no = _repositorioConsulta.Consulta<No>(no => no.Id == noId).FirstOrDefault();
@@ -31,7 +31,7 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
         return Ok(_request.EnviarRequisicao(no));
     }
     
-    [HttpPost("/testefunction/{FuncaoId}")]
+    [HttpPost("/testefunction/{funcaoId}")]
     public IActionResult TestarFunction(long funcaoId, [FromBody] object dadoAnterior)
     {
         var funcao = _repositorioConsulta.Consulta<Funcao>(funcao => funcao.Id == funcaoId).FirstOrDefault();
@@ -39,7 +39,7 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
         return Ok(_executor.Executar(funcao, dadoAnterior));
     }
 
-    [HttpPost("/testestorage/{FuncaoId}")]
+    [HttpPost("/testestorage/{noId}")]
     public IActionResult TestarStorage(long noId, [FromBody] object dadoAnterior)
     {
         var no = _repositorioConsulta.Consulta<No>(no => no.Id == noId).FirstOrDefault();

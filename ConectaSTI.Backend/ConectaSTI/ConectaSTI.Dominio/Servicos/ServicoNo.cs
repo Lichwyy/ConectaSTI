@@ -69,9 +69,9 @@ public class ServicoNo : ServicoCrud<No>
         if (storageExistente != null)
             Mensagens.Add("Já existe um nó com a mesma ChaveValor.", true);
 
-        // Validando Data de Validade
-        if (entidade.DataValidade <= DateTime.Now)
-            Mensagens.Add("DataValidade deve ser uma data futura.", true);
+        // Validando TempoMinutoValidade - deve ser um valor positivo
+        if (entidade.TempoMinutoValidade <= 0)
+            Mensagens.Add("TempoMinutoValidade deve ser um valor positivo.", true);
     }
 
     private void ValidarPegarStorage(No entidade)

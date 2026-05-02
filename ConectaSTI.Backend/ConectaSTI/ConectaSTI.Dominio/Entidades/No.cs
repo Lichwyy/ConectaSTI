@@ -13,7 +13,7 @@ public class No : EntidadeBase
     public long? FuncaoId { get; set; }
     public long? EndPointId { get; set; }
     public string ChaveValor { get; set; }
-    public DateTime DataValidade { get; set; }
+    public int TempoMinutoValidade { get; set; }
 
     public void ValidarVinculos()
     {
