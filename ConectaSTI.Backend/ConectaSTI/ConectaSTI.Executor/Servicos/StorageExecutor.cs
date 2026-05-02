@@ -1,6 +1,7 @@
 ﻿using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Interfaces;
 using ConectaSTI.Dominio.ObjetosValor;
+using ConectaSTI.Dominio.Servicos;
 using FGB.Dominio.ObjetoValor;
 using FGB.IRepositorios;
 using FGB.Servicos;
@@ -12,8 +13,8 @@ namespace ConectaSTI.Executor.Servicos
 {
     public class StorageExecutor : IStorageExecutor
     {
-        private readonly ServicoCrud<Storage> _servico;
-        public StorageExecutor(ServicoCrud<Storage> servico)
+        private readonly ServicoStorage _servico;
+        public StorageExecutor(ServicoStorage servico)
         {
             _servico = servico;
         }
