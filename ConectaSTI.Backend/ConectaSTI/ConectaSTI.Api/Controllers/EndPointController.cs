@@ -3,7 +3,6 @@ using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Interfaces;
 using ConectaSTI.Dominio.Servicos;
 using FGB.Api.Controllers;
-using FGB.Dominio.Interfaces.Utilitarios;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.Mvc;
 
