@@ -30,7 +30,7 @@ namespace ConectaSTI.Executor.Servicos
             
             if (nozinho == null)
             {
-                respostaRequisicao.Status = 500;
+                respostaRequisicao.Status = 400;
                 respostaRequisicao.Retorno.Add(new MensagemRetorno("O no nao pode ser nulo", true));
                 return respostaRequisicao;
             }
@@ -60,9 +60,17 @@ namespace ConectaSTI.Executor.Servicos
             // Montagem do Header
             if (!string.IsNullOrWhiteSpace(nozinho.Headers))
             {
-                Dictionary<string, string> headerDic = _converter.Desserializar<Dictionary<string, string>>(nozinho.Headers);
                 try
                 {
+                    Dictionary<string, string> headerDic = _converter.Desserializar<Dictionary<string, string>>(nozinho.Headers);
+
+                    if(headerDic == null)
+                    {
+                        respostaRequisicao.Status = 400;
+                        respostaRequisicao.Retorno.Add(new MensagemRetorno("Os headers do nó estão em um formato JSON inválido.", true));
+                        return respostaRequisicao;
+                    }
+
                     foreach (var item in headerDic)
                     {
                         request.Headers.Add(item.Key, item.Value);
