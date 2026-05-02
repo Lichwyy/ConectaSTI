@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Interfaces;
 using FGB.Dominio.Interfaces.Utilitarios;
@@ -22,7 +23,6 @@ namespace ConectaSTI.Executor.Servicos
             _request = request;
             _converter = converter;
         }
-        
         
         public RespostaHttp<object> EnviarRequisicao(No nozinho)
         {
@@ -56,15 +56,23 @@ namespace ConectaSTI.Executor.Servicos
                 
                 request.Url = $"{baseURL}/{recurso}";
             }
-            
+
             // Montagem do Header
-            if (nozinho.Headers != null)
+            if (!string.IsNullOrWhiteSpace(nozinho.Headers))
             {
                 Dictionary<string, string> headerDic = _converter.Desserializar<Dictionary<string, string>>(nozinho.Headers);
-                
-                foreach (var item in headerDic)
+                try
                 {
-                    request.Headers.Add(item.Key, item.Value);
+                    foreach (var item in headerDic)
+                    {
+                        request.Headers.Add(item.Key, item.Value);
+                    }
+                }
+                catch (JsonException)
+                { 
+                    respostaRequisicao.Status = 400;
+                    respostaRequisicao.Retorno.Add(new MensagemRetorno("Os headers do nó estão em um formato JSON inválido.", true));
+                    return respostaRequisicao;
                 }
             }
 
@@ -79,7 +87,7 @@ namespace ConectaSTI.Executor.Servicos
             }
             
             // Montagem do Body
-            if (nozinho.Body != null)
+            if (!string.IsNullOrWhiteSpace(nozinho.Body))
             {
                 request.Body = _converter.Desserializar<object>(nozinho.Body);
                 

@@ -30,6 +30,7 @@ public class Program
 
         builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
         builder.Services.AddTransient<IFunctionExecutor, FunctionExecutor>();
+        builder.Services.AddTransient<IStorageExecutor, StorageExecutor>();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {

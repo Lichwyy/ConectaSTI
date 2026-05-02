@@ -5,5 +5,5 @@ namespace ConectaSTI.Dominio.Interfaces;
 
 public interface IFunctionExecutor
 {
-    public RespostaHttp<string> Executar(Funcao funcao, object dadoAnterior);
+    public RespostaHttp<object> Executar(Funcao funcao, object dadoAnterior);
 }

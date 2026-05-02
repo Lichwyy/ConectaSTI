@@ -18,9 +18,9 @@ public class FunctionExecutor : IFunctionExecutor
         _converter = converter;
     }
     
-    public RespostaHttp<string> Executar(Funcao funcao, object dadoAnterior)
+    public RespostaHttp<object> Executar(Funcao funcao, object dadoAnterior)
     {
-        var resposta = new RespostaHttp<string>
+        var resposta = new RespostaHttp<object>
         {
             Accept = AcceptProxy.Json
         };

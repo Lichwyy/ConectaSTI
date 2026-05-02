@@ -57,6 +57,7 @@ public class ServicoNo : ServicoCrud<No>
 
     private void ValidarSalvarStorage(No entidade)
     {
+        //Validando Chave Valor
         if (string.IsNullOrEmpty(entidade.ChaveValor))
         {
             Mensagens.Add("ChaveValor é obrigatória para nós do tipo SalvarStorage.", true);
@@ -67,6 +68,10 @@ public class ServicoNo : ServicoCrud<No>
             .FirstOrDefault();
         if (storageExistente != null)
             Mensagens.Add("Já existe um nó com a mesma ChaveValor.", true);
+
+        // Validando Data de Validade
+        if (entidade.DataValidade <= DateTime.Now)
+            Mensagens.Add("DataValidade deve ser uma data futura.", true);
     }
 
     private void ValidarPegarStorage(No entidade)
