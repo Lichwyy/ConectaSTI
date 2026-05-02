@@ -18,7 +18,6 @@
     <property name="Repetir"                    column="repetir"                type="bool"     not-null="true" />
     <property name="Erro"                       column="erro"                                   not-null="true" />
     <property name="MaximoRepeticao"            column="maximo_repeticao"       type="int"      not-null="true" />
-    <property name="MaxRetries"                 column="max_retries"            type="int"      not-null="true" />
     <property name="BackoffType"                column="backoff_type"                           not-null="true" />
     <property name="BackoffDelay"               column="backoff_delay"          type="int"      not-null="true" />
     <property name="BackoffMultiplier"          column="backoff_multiplier"     type="double"   not-null="true" />
