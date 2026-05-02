@@ -18,11 +18,11 @@ public class Operacao : EntidadeBase
     public bool Repetir { get; set; } = false;
     //public bool UsarDadosFluxo { get; set; }
     [Obrigar]
-    public TipoErro Erro { get; set; } // Tem que fazer nengue
-    public int MaximoRepeticao { get; set; } //apagar
+    public TipoErro Erro { get; set; }
 
-    [Range(0, 10, ErrorMessage = "MaxRetries deve estar entre 0 e 10")]
-    public int MaxRetries { get; set; } = 0;
+    [Range(0, 10, ErrorMessage = "Maximo de repeticoes deve estar entre 0 e 10")]
+    public int MaximoRepeticao { get; set; }
+
     [Obrigar]
     public BackoffType BackoffType { get; set; } = BackoffType.Immediate;
     [Range(0, int.MaxValue, ErrorMessage = "BackoffDelay deve ser um inteiro positivo")]
