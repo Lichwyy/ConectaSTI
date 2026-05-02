@@ -1,8 +1,6 @@
 ﻿using FGB.Dominio.Interfaces.Utilitarios;
 using FGB.Dominio.ObjetoValor;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using FGB.Servicos;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -10,6 +8,7 @@ namespace FGB.Dominio.Servicos
 {
     public class Conversor : IConverter
     {
+        public ListaMensagens Mensagens { get; private set; } = new ListaMensagens();
         public string Serializar(object valores, TipoSerializacao tipoSerializacao = TipoSerializacao.CamelCase, bool indent = false)
         {
             var serializadorSettings = new JsonSerializerOptions
@@ -32,22 +31,52 @@ namespace FGB.Dominio.Servicos
             return JsonSerializer.Serialize(valores, serializadorSettings);
         }
 
-        public T Desserializar<T>(string estrutura, TipoSerializacao tipoSerializacao = TipoSerializacao.CamelCase)
+        public T? Desserializar<T>( string estrutura, TipoSerializacao tipoSerializacao = TipoSerializacao.CamelCase)
         {
-            var deserializadorSettings = new JsonSerializerOptions();
+            if (string.IsNullOrWhiteSpace(estrutura))
+            {
+                Mensagens.Add("A estrutura para desserialização não pode ser vazia.", true);
+                return default;
+            }
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
             switch (tipoSerializacao)
             {
                 case TipoSerializacao.CamelCase:
-                    deserializadorSettings.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                    options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                     break;
+
                 case TipoSerializacao.UnderscoreCase:
-                    deserializadorSettings.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
-                    break;
-                default:
+                    options.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
                     break;
             }
 
-            return JsonSerializer.Deserialize<T>(estrutura, deserializadorSettings)!;
+            try
+            {
+                var resultado = JsonSerializer.Deserialize<T>(estrutura, options);
+
+                if (resultado is null)
+                {
+                    Mensagens.Add($"Não foi possível desserializar o conteúdo para o tipo {typeof(T).Name}.", true);
+                    return default;
+                }
+
+                return resultado;
+            }
+            catch (JsonException ex)
+            {
+                Mensagens.Add(ex);
+                return default;
+            }
+            catch (Exception ex)
+            {
+                Mensagens.Add(ex);
+                return default;
+            }
         }
     }
 }
