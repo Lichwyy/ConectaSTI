@@ -1,14 +1,9 @@
 using ConectaSTI.Api.Extensoes;
-using FGB.Dominio.Interfaces.Utilitarios;
-using FGB.API.Utils;
-using FGB.Dominio.Repositorios;
-using FGB.Dominio.Servicos;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
-using NHibernate.Cfg;
 using System.Text.Json.Serialization;
-using NHSession = NHibernate.ISession;
-using NHSessionFactory = NHibernate.ISessionFactory;
+using ConectaSTI.Dominio.Interfaces;
+using ConectaSTI.Executor.Servicos;
 
 namespace ConectaSTI.Api;
 
@@ -30,34 +25,12 @@ public class Program
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
-        builder.Services.AddSingleton(_ =>
-        {
-            var connectionString = builder.Configuration.GetConnectionString("Default");
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException("Connection string 'ConnectionStrings:Default' não configurada. Defina via environment variable 'ConnectionStrings__Default' ou user-secrets.");
-            }
-
-            var cfg = new Configuration();
-            cfg.Configure(Path.Combine(AppContext.BaseDirectory, "nhibernate.cfg.xml"));
-            cfg.SetProperty(NHibernate.Cfg.Environment.ConnectionString, connectionString);
-            return cfg;
-        });
-
-        builder.Services.AddSingleton<NHSessionFactory>(sp =>
-            sp.GetRequiredService<Configuration>().BuildSessionFactory());
-
-        builder.Services.AddScoped<NHSession>(sp =>
-            sp.GetRequiredService<NHSessionFactory>().OpenSession());
-
-        builder.Services.AddTransient<IRepositorioSessao, RepositorioSessao>();
-        builder.Services.AddTransient<IMigracao, Migracao>();
-
-        builder.Services.Configure<ServicoRequestOptions>(builder.Configuration.GetSection("ServicoRequest"));
-        builder.Services.AddTransient<IRequest, ServicoRequest>();
-
-        builder.Services.AddAutoMapperProfiles();
+        builder.Services.AddFgb(builder.Configuration);
         builder.Services.AddServicosConectaSti();
+
+        builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
+        builder.Services.AddTransient<IFunctionExecutor, FunctionExecutor>();
+        builder.Services.AddTransient<IStorageExecutor, StorageExecutor>();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {

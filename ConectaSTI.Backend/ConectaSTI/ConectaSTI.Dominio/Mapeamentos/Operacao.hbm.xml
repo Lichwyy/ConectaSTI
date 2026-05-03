@@ -11,17 +11,16 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Ordem" column="ordem" type="int" not-null="true" />
-    <property name="NoId" column="no_id" type="long" not-null="true" />
-    <many-to-one name="Fluxo" class="Fluxo" column="fluxo_id" not-null="true" />
-    <property name="FluxoId" column="fluxo_id" type="long" not-null="true" insert="false" update="false" />
-    <property name="Repetir" column="repetir" type="bool" not-null="true" />
-    <property name="Erro" column="erro" not-null="true" />
-    <property name="MaximoRepeticao" column="maximo_repeticao" type="int" not-null="true" />
-    <property name="MaxRetries" column="max_retries" type="int" not-null="true" />
-    <property name="BackoffType" column="backoff_type" not-null="true" />
-    <property name="BackoffDelay" column="backoff_delay" type="int" not-null="true" />
-    <property name="BackoffMultiplier" column="backoff_multiplier" type="double" not-null="true" />
-    <property name="Timeout" column="timeout" type="int" not-null="true" />
+    <property name="Ordem"                      column="ordem"                  type="int"      not-null="true" />
+    <property name="NoId"                       column="no_id"                  type="long"     not-null="true" />
+    <many-to-one name="Fluxo"   class="Fluxo"   column="fluxo_id"                               not-null="true" />
+    <property name="FluxoId"                    column="fluxo_id"               type="long"     not-null="true" insert="false" update="false" />
+    <property name="Repetir"                    column="repetir"                type="bool"     not-null="true" />
+    <property name="Erro"                       column="erro"                                   not-null="true" />
+    <property name="MaximoRepeticao"            column="maximo_repeticao"       type="int"      not-null="true" />
+    <property name="BackoffType"                column="backoff_type"                           not-null="true" />
+    <property name="BackoffDelay"               column="backoff_delay"          type="int"      not-null="true" />
+    <property name="BackoffMultiplier"          column="backoff_multiplier"     type="double"   not-null="true" />
+    <property name="Timeout"                    column="timeout"                type="int"      not-null="true" />
   </class>
 </hibernate-mapping>

@@ -10,8 +10,8 @@
     <property   name="CriadoEm"           column="criadoem"           type="DateTime"   not-null="false"  />
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
-
-    <property name="Nome" column="nome" type="string" not-null="true" />
+    <property   name="Nome"     column="nome"   type="string"   not-null="true" />
+	  
     <bag name="Operacoes" inverse="true" cascade="all-delete-orphan" lazy="false">
       <key column="fluxo_id" not-null="true" />
       <one-to-many class="Operacao" />

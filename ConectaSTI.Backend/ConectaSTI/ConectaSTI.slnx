@@ -3,4 +3,5 @@
   <Project Path="../FGB/FGB.Dominio.csproj" />
   <Project Path="ConectaSTI.Api/ConectaSTI.Api.csproj" />
   <Project Path="ConectaSTI.Dominio/ConectaSTI.Dominio.csproj" />
+  <Project Path="ConectaSTI.Executor/ConectaSTI.Executor.csproj" Id="49b3e130-7b6a-4530-bea7-0c10aadbf23b" />
 </Solution>

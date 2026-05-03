@@ -15,7 +15,7 @@ namespace FGB.Dominio.ObjetoValor
         }
 
         public int Status { get; set; }
-        public AcceptProxy Accept { get; set; }
+        public AcceptProxy Accept { get; set; } = AcceptProxy.Json;
         public T Resposta { get; set; }
         public string RespostaBody { get; set; }
         public TimeSpan? TempoResposta { get; set; }

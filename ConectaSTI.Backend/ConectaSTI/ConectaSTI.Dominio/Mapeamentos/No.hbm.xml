@@ -11,11 +11,12 @@
     <property   name="UltimaAlteracao"    column="ultimaalteracao"    type="DateTime"   not-null="false"  />
 
 
-    <property name="Tipo" column="tipo" not-null="true" />
-    <property name="Body" column="body" type="string" not-null="false" />
-    <property name="Headers" column="headers" type="string" not-null="false" />
-    <property name="FuncaoId" column="funcao_id" type="long" not-null="false" />
-    <property name="EndPointId" column="end_point_id" type="long" not-null="false" />
-    <property name="ChaveValor" column="chave_valor" type="string" not-null="false" />
+    <property name="Tipo"                    column="tipo"                                     not-null="true" />
+    <property name="Body"                    column="body"                     type="string"   not-null="false" />
+    <property name="Headers"                 column="headers"                  type="string"   not-null="false" />
+    <property name="FuncaoId"                column="funcao_id"                type="long"     not-null="false" />
+    <property name="EndPointId"              column="end_point_id"             type="long"     not-null="false" />
+    <property name="ChaveValor"              column="chave_valor"              type="string"   not-null="false" />
+    <property name="TempoMinutoValidade"     column="tempo_minuto_validade"    type="int"      not-null="false" />
   </class>
 </hibernate-mapping>

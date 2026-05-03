@@ -16,6 +16,7 @@ public class Operacao : EntidadeBase
     [JsonIgnore]
     public Fluxo Fluxo { get; set; }
     public bool Repetir { get; set; } = false;
+    //public bool UsarDadosFluxo { get; set; }
     [Obrigar]
     public TipoErro Erro { get; set; }
 

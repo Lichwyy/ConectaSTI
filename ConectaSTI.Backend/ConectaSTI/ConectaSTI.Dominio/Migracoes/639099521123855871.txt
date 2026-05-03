@@ -1,0 +1,15 @@
+ALTER TABLE end_point
+    ADD COLUMN IF NOT EXISTS descricao TEXT;
+
+ALTER TABLE integracao
+    ADD COLUMN IF NOT EXISTS descricao TEXT;
+
+ALTER TABLE integracao
+    ADD COLUMN IF NOT EXISTS nome VARCHAR(255);
+
+UPDATE integracao
+SET nome = ''
+WHERE nome IS NULL;
+
+ALTER TABLE integracao
+    ALTER COLUMN nome SET NOT NULL;
