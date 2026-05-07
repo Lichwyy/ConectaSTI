@@ -51,14 +51,8 @@ namespace ConectaSTI.Executor.Servicos
                 return new RespostaHttp<object>()
                 {
                     Status = 201,
-                    Resposta = null,
-                    Retorno = new List<MensagemRetorno>()
-                    {
-                        new MensagemRetorno()
-                        {
-                            Mensagem = "Valor salvo com sucesso."
-                        }
-                    }
+                    Resposta = no.Body,
+                    Retorno = new List<MensagemRetorno>() { new MensagemRetorno() { Mensagem = "Valor salvo com sucesso." } }
                 };
 
             // Em caso de falha ao salvar, retornamos um erro.
@@ -70,7 +64,7 @@ namespace ConectaSTI.Executor.Servicos
                 {
                     new MensagemRetorno()
                     {
-                        Mensagem = "Erro ao salvar o valor."
+                        Mensagem = _servico.Mensagens.First().Mensagem
                     }
                 }
             };

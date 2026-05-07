@@ -51,13 +51,13 @@ namespace ConectaSTI.Executor.Servicos
             }
 
             // Ordenando as operações do fluxo com base na propriedade Ordem para garantir que sejam executadas na sequência correta
-            fluxo.Operacoes = fluxo.Operacoes.OrderBy(x => x.Ordem).ToList();
+            var operacoesOrdenadas = fluxo.Operacoes.OrderBy(x => x.Ordem).ToList();
 
             // Variável para armazenar o resultado da operação anterior, que pode ser usada como entrada para a próxima operação no fluxo
             object dadoAnterior = null;
 
             // Iterando sobre as operações do fluxo e executando cada uma delas
-            foreach (Operacao operacao in fluxo.Operacoes)
+            foreach (Operacao operacao in operacoesOrdenadas)
             {
                 // Consultando o nó associado à operação no banco de dados
                 No no = _repositorioConsulta.Consulta<No>(x => x.Id == operacao.NoId).FirstOrDefault();
@@ -84,6 +84,7 @@ namespace ConectaSTI.Executor.Servicos
                     {
                         // Se o tipo do nó for Requisição, usar o executor de requisições para enviar a requisição e obter a resposta
                         case TipoNo.Requisicao:
+                            no.Body = dadoAnterior?.ToString();
                             resposta = _requestExecutor.EnviarRequisicao(no);
                             break;
 
@@ -101,7 +102,7 @@ namespace ConectaSTI.Executor.Servicos
                             }
 
                             // Executando a função JavaScript usando o executor de funções e atualizando a resposta HTTP com o resultado da execução
-                            resposta = _functionExecutor.Executar(funcao, dadoAnterior);
+                            dadoAnterior = _functionExecutor.Executar(funcao, dadoAnterior);
                             break;
 
                         // Se o tipo do nó for SalvarStorage, usar o executor de storage para salvar o valor no storage e obter a resposta

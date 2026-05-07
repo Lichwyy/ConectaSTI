@@ -1,0 +1,2 @@
+ALTER TABLE no 
+ADD COLUMN tempo_minuto_validade INT NULL;

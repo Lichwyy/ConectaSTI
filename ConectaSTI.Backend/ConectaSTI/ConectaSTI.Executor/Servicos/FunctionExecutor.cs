@@ -37,9 +37,19 @@ public class FunctionExecutor : IFunctionExecutor
 
         try
         {
-            string jsonInput = dadoAnterior != null
-                ? _converter.Serializar(dadoAnterior, TipoSerializacao.None)
-                : "{}";
+            string jsonInput = "{}";
+
+            if (dadoAnterior != null)
+            {
+                if (dadoAnterior is string dadoString)
+                {
+                    jsonInput = dadoString; 
+                }
+                else
+                {
+                    jsonInput = _converter.Serializar(dadoAnterior, TipoSerializacao.None);
+                }
+            }
 
             engine.SetValue("rawInputString", jsonInput);
 
@@ -51,7 +61,6 @@ public class FunctionExecutor : IFunctionExecutor
                         {funcao.CorpoDaFuncao}
                     }})();
 
-                    // Se for um objeto, devolve JSON, se for primitivo, devolve string
                     return typeof resultadoUsuario === 'object' 
                         ? JSON.stringify(resultadoUsuario) 
                         : String(resultadoUsuario);

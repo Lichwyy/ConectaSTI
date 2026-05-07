@@ -13,13 +13,15 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
     private readonly IRequestExecutor _request;
     private readonly IFunctionExecutor _executor;
     private readonly IStorageExecutor _storageExecutor;
+    private readonly IFluxoExecutor _fluxoExecutor;
     private readonly IRepositorioConsulta _repositorioConsulta;
     
-    public EndPointController(ServicoEndPoint servico, IMapper mapper, IRequestExecutor request, IRepositorioConsulta repositorioConsulta, IFunctionExecutor executor, IStorageExecutor storageExecutor) : base(servico, mapper)
+    public EndPointController(ServicoEndPoint servico, IMapper mapper, IRequestExecutor request, IRepositorioConsulta repositorioConsulta, IFunctionExecutor executor, IStorageExecutor storageExecutor, IFluxoExecutor fluxoExecutor) : base(servico, mapper)
     {
         _request = request;
         _executor = executor;
         _storageExecutor = storageExecutor;
+        _fluxoExecutor = fluxoExecutor;
         _repositorioConsulta = repositorioConsulta;
     }
 
@@ -45,5 +47,13 @@ public class EndPointController : CrudControllerBase<EndPoint, EndPoint>
         var no = _repositorioConsulta.Consulta<No>(no => no.Id == noId).FirstOrDefault();
 
         return Ok(_storageExecutor.Salvar(no));
+    }
+    
+    [HttpPost("/testefluxo/{fluxoId}")]
+    public async Task<IActionResult> TestarFluxo(long fluxoId) 
+    {
+        var resultado = await _fluxoExecutor.Executar(fluxoId);
+    
+        return Ok(resultado);
     }
 }
