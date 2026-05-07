@@ -13,4 +13,5 @@ public class EndPoint : EntidadeBase
     [Obrigar]
     public VerboHttp Verbo { get; set; }
     public string Descricao { get; set; }
+    public string Token { get; set; }
 }

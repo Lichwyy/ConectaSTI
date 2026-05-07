@@ -84,7 +84,10 @@ namespace ConectaSTI.Executor.Servicos
                     {
                         // Se o tipo do nó for Requisição, usar o executor de requisições para enviar a requisição e obter a resposta
                         case TipoNo.Requisicao:
-                            no.Body = dadoAnterior?.ToString();
+                            if (operacao.UsarDadosAnterior)
+                            {
+                                no.Body = dadoAnterior?.ToString();
+                            }
                             resposta = _requestExecutor.EnviarRequisicao(no);
                             break;
 

@@ -13,3 +13,9 @@ WHERE nome IS NULL;
 
 ALTER TABLE integracao
     ALTER COLUMN nome SET NOT NULL;
+
+ALTER TABLE no 
+ADD COLUMN tempo_minuto_validade INT NULL;
+
+ALTER TABLE end_point 
+ADD COLUMN token VARCHAR(500) NULL;
