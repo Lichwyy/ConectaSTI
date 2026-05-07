@@ -102,7 +102,7 @@ namespace ConectaSTI.Executor.Servicos
                             }
 
                             // Executando a função JavaScript usando o executor de funções e atualizando a resposta HTTP com o resultado da execução
-                            dadoAnterior = _functionExecutor.Executar(funcao, dadoAnterior);
+                            resposta = _functionExecutor.Executar(funcao, dadoAnterior);
                             break;
 
                         // Se o tipo do nó for SalvarStorage, usar o executor de storage para salvar o valor no storage e obter a resposta
