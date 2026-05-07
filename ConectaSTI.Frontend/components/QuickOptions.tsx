@@ -1,13 +1,12 @@
 import React from 'react'
 
 import { motion } from "motion/react"
-import { FediverseLogoIcon } from '@phosphor-icons/react';
+import { FlowArrowIcon, EnvelopeSimpleIcon } from '@phosphor-icons/react';
 
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardFooter,
+
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
@@ -15,15 +14,15 @@ import {
 const options: {id: string; label: string; description: string; icon: React.ComponentType<{ size?: number; className?: string }>}[] = [
     {
         id: "1",
-        label: "Funcionalidade 1",
-        description: "Descrição da funcionalidade 1",
-        icon: FediverseLogoIcon
+        label: "Cadastrar uma Api",
+        description: "Cadastre uma nova Api para usar no ConectaSTI",
+        icon: EnvelopeSimpleIcon
     },
     {
         id: "2",
-        label: "Funcionalidade 2",
-        description: "Descrição da funcionalidade 2",
-        icon: FediverseLogoIcon
+        label: "Criar um Workflow",
+        description: "Crie um novo Workflow para usar no ConectaSTI",
+        icon: FlowArrowIcon
     }
 ]
 
