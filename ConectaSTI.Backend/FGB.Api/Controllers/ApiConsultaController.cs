@@ -2,6 +2,7 @@
 using AutoMapper.QueryableExtensions;
 using FGB.Entidades;
 using FGB.Servicos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 
@@ -23,6 +24,7 @@ namespace FGB.Api.Controllers
 
         [HttpGet]
         [EnableQuery]
+        [Authorize(Policy = "admin")]
         public virtual IActionResult GetOData()
         {
             if (typeof(T) != typeof(TDto))
@@ -37,6 +39,7 @@ namespace FGB.Api.Controllers
         }
 
         [HttpGet("{id:long}")]
+        [Authorize(Policy = "admin")]
         public virtual IActionResult GetById(long id)
         {
             var entity = _servicoConsulta.Retorna(id);

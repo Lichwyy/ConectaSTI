@@ -1,6 +1,7 @@
 using ConectaSTI.Api.Extensoes;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
+using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
 using ConectaSTI.Dominio.Interfaces;
 using ConectaSTI.Executor.Servicos;
@@ -26,6 +27,7 @@ public class Program
         builder.Services.AddOpenApi();
 
         builder.Services.AddFgb(builder.Configuration);
+        builder.Services.AddAutenticacao(builder.Configuration);
         builder.Services.AddServicosConectaSti();
 
         builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
@@ -41,9 +43,6 @@ public class Program
                       .AllowAnyHeader();
             });
         });
-
-        builder.Services.AddSwaggerGen();
-        
         var app = builder.Build();
 
         if (app.Configuration.GetValue<bool>("MigrateDb"))
@@ -58,12 +57,12 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            app.MapScalarApiReference(options =>
             {
-                c.SwaggerEndpoint($"/swagger/v1/swagger.json", $"API 1");
-                c.RoutePrefix = string.Empty;
+                options.WithTitle("ConectaSTI API");
             });
+            app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+                .ExcludeFromDescription();
         }
 
         if (!app.Environment.IsDevelopment())
