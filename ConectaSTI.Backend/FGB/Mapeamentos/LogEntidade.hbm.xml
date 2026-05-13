@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" assembly="FGB.Dominio" namespace="FGB.Dominio.Entidades">
+  <class name="LogEntidade" table="log_entidade" lazy="false">
+    <id name="Id" type="long" column="id">
+      <generator class="sequence">
+        <param name="sequence">log_entidade_id_seq</param>
+      </generator>
+    </id>
+
+    <property name="NomeEntidade"   column="nome_entidade"  type="string"     not-null="true" />
+    <property name="IdEntidade"     column="id_entidade"    type="long"       not-null="true" />
+    <property name="TipoOperacao"   column="tipo_operacao"  type="string"     not-null="true" />
+    <property name="DataOperacao"   column="data_operacao"  type="DateTime"   not-null="true" />
+    <property name="Usuario"        column="usuario"        type="string"     not-null="false" />
+    <property name="IdUsuario"      column="id_usuario"     type="string"     not-null="false" />
+  </class>
+</hibernate-mapping>

@@ -1,0 +1,28 @@
+CREATE TABLE IF NOT EXISTS log_entidade (
+    id BIGSERIAL PRIMARY KEY,
+    nome_entidade VARCHAR(255) NOT NULL,
+    id_entidade BIGINT NOT NULL,
+    tipo_operacao VARCHAR(50) NOT NULL,
+    data_operacao TIMESTAMP NOT NULL,
+    usuario VARCHAR(255) NULL,
+    id_usuario VARCHAR(255) NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_log_entidade_registro
+    ON log_entidade (nome_entidade, id_entidade);
+
+CREATE INDEX IF NOT EXISTS idx_log_entidade_data_operacao
+    ON log_entidade (data_operacao);
+
+CREATE TABLE IF NOT EXISTS log_propriedade (
+    id BIGSERIAL PRIMARY KEY,
+    log_entidade_id BIGINT NOT NULL,
+    propriedade VARCHAR(255) NOT NULL,
+    valor_anterior TEXT NULL,
+    valor_atual TEXT NULL,
+    CONSTRAINT fk_log_propriedade_log_entidade
+        FOREIGN KEY (log_entidade_id) REFERENCES log_entidade (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_log_propriedade_log_entidade
+    ON log_propriedade (log_entidade_id);

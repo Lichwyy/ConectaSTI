@@ -1,4 +1,5 @@
 using ConectaSTI.Api.Extensoes;
+using FGB.Api.Controllers;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
 using Scalar.AspNetCore;
@@ -16,8 +17,11 @@ public class Program
 
         // Add services to the container.
 
-        builder.Services.AddControllers().AddOData(opt =>
-            opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000)).AddJsonOptions(opt =>
+        builder.Services.AddControllers()
+            .AddApplicationPart(typeof(LogEntidadeController).Assembly)
+            .AddOData(opt =>
+                opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000))
+            .AddJsonOptions(opt =>
                 {
                     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     opt.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
@@ -72,6 +76,7 @@ public class Program
 
         app.UseCors("AllowAll");
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();

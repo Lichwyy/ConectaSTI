@@ -1,14 +1,16 @@
 using ConectaSTI.Dominio.Entidades;
+using ConectaSTI.Dominio.ObjetosValor;
+using FGB.Dominio.Interfaces.Seguranca;
 using FGB.IRepositorios;
 using FGB.Servicos;
-using ConectaSTI.Dominio.ObjetosValor;
 
 namespace ConectaSTI.Dominio.Servicos;
 
 public class ServicoOperacao : ServicoCrud<Operacao>
 {
     private IRepositorioConsulta _consulta;
-    public ServicoOperacao(IRepositorioSessao repositorio) : base(repositorio)
+
+    public ServicoOperacao(IRepositorioSessao repositorio, ICurrentUserContext currentUserContext) : base(repositorio, currentUserContext)
     {
         _consulta = Repositorio.GetRepositorioConsulta();
     }
@@ -18,7 +20,7 @@ public class ServicoOperacao : ServicoCrud<Operacao>
         Mensagens.Clear();
         if (entidade == null)
         {
-            Mensagens.Add("Operação é obrigatória.", true);
+            Mensagens.Add("OperaÃ§Ã£o Ã© obrigatÃ³ria.", true);
             return false;
         }
 
@@ -43,7 +45,7 @@ public class ServicoOperacao : ServicoCrud<Operacao>
         No no = _consulta.Retorna<No>(entidade.NoId);
         if (no == null)
         {
-            Mensagens.Add("No não existe.", true);
+            Mensagens.Add("No nÃ£o existe.", true);
             return;
         }
 
@@ -52,18 +54,18 @@ public class ServicoOperacao : ServicoCrud<Operacao>
 
     private void ValidarTipoNoParaOrdem(Operacao entidade, No no)
     {
-        // Operação de ordem 1 não pode ser do tipo PegarStorage
-        // pois o storage ainda não foi populado neste ponto do fluxo
+        // OperaÃ§Ã£o de ordem 1 nÃ£o pode ser do tipo PegarStorage
+        // pois o storage ainda nÃ£o foi populado neste ponto do fluxo
         if (entidade.Ordem == 1 && !no.PodeSerPrimeiraOperacao())
         {
-            Mensagens.Add("A primeira operação (ordem 1) não pode ser do tipo PegarStorage, pois o storage ainda não possui dados neste ponto do fluxo.", true);
+            Mensagens.Add("A primeira operaÃ§Ã£o (ordem 1) nÃ£o pode ser do tipo PegarStorage, pois o storage ainda nÃ£o possui dados neste ponto do fluxo.", true);
         }
     }
 
     private void ValidarOrdemUnica(Operacao entidade)
     {
         if (Consulta(x => x.FluxoId == entidade.FluxoId && x.Ordem == entidade.Ordem && x.Id != entidade.Id).Any())
-            Mensagens.Add("Já existe uma operação com a mesma ordem para este fluxo.", true);
+            Mensagens.Add("JÃ¡ existe uma operaÃ§Ã£o com a mesma ordem para este fluxo.", true);
     }
 
     private void ValidarPoliticaRepeticao(Operacao entidade)

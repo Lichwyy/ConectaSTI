@@ -1,8 +1,10 @@
 using FGB.API.Utils;
+using FGB.Dominio.Entidades;
 using FGB.Dominio.Interfaces.Utilitarios;
 using FGB.Dominio.Repositorios;
 using FGB.Dominio.Servicos;
 using FGB.IRepositorios;
+using FGB.Servicos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate.Cfg;
@@ -25,6 +27,7 @@ namespace ConectaSTI.Api.Extensoes
 
                 var cfg = new Configuration();
                 cfg.Configure(Path.Combine(AppContext.BaseDirectory, "nhibernate.cfg.xml"));
+                cfg.AddAssembly(typeof(LogEntidade).Assembly);
                 cfg.SetProperty(NHibernate.Cfg.Environment.ConnectionString, connectionString);
                 return cfg;
             });
@@ -39,6 +42,7 @@ namespace ConectaSTI.Api.Extensoes
             services.AddTransient<IRepositorioConsulta, RepositorioConsulta>();
             services.AddTransient<IMigracao, Migracao>();
             services.AddScoped<IConverter, Conversor>();
+            services.AddTransient(typeof(ServicoConsulta<>));
 
             services.Configure<ServicoRequestOptions>(configuration.GetSection("ServicoRequest"));
             services.AddTransient<IRequest, ServicoRequest>();

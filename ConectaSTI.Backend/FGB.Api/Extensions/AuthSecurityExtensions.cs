@@ -1,6 +1,8 @@
-﻿using System.Text;
+using FGB.Api.Contexts;
+using FGB.Dominio.Interfaces.Seguranca;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace FGB.Api.Extensions
 {
@@ -15,6 +17,9 @@ namespace FGB.Api.Extensions
             var clientId = configuration["BifrostAuth:ClientId"] ?? throw new InvalidOperationException("BifrostAuth:ClientId não configurado.");
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+
+            services.AddHttpContextAccessor();
+            services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
             services
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -43,11 +48,11 @@ namespace FGB.Api.Extensions
             {
                 options.AddPolicy("SuperUser", policy => policy.RequireRole("superuser"));
 
-                options.AddPolicy("admin", policy => {
+                options.AddPolicy("admin", policy =>
+                {
                     // policy.RequireClaim("permission", "admin"); // somente teste
                     policy.RequireRole("admin");
-                    }
-                );
+                });
             });
 
             return services;
