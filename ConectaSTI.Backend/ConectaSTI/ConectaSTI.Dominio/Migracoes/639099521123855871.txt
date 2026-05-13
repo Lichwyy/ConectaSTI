@@ -14,8 +14,14 @@ WHERE nome IS NULL;
 ALTER TABLE integracao
     ALTER COLUMN nome SET NOT NULL;
 
-ALTER TABLE no 
-ADD COLUMN tempo_minuto_validade INT NULL;
+ALTER TABLE no
+    ADD COLUMN IF NOT EXISTS tempo_minuto_validade INT DEFAULT 0;
+
+UPDATE no
+SET tempo_minuto_validade = 0
+WHERE tempo_minuto_validade IS NULL;
+ALTER TABLE no
+    ALTER COLUMN tempo_minuto_validade SET NOT NULL;
 
 ALTER TABLE end_point 
 ADD COLUMN token VARCHAR(500) NULL;

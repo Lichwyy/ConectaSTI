@@ -53,17 +53,20 @@ namespace ConectaSTI.Executor.Servicos
             // Ordenando as operações do fluxo com base na propriedade Ordem para garantir que sejam executadas na sequência correta
             var operacoesOrdenadas = fluxo.Operacoes.OrderBy(x => x.Ordem).ToList();
 
+            // Pré-carregando todos os nós necessários para evitar consultas repetidas ao banco dentro do foreach
+            var noIds = operacoesOrdenadas.Select(x => x.NoId).Distinct().ToList();
+            var nosPorId = _repositorioConsulta
+                .Consulta<No>(x => noIds.Contains(x.Id))
+                .ToDictionary(x => x.Id, x => x);
+            
             // Variável para armazenar o resultado da operação anterior, que pode ser usada como entrada para a próxima operação no fluxo
             object dadoAnterior = null;
 
             // Iterando sobre as operações do fluxo e executando cada uma delas
             foreach (Operacao operacao in operacoesOrdenadas)
             {
-                // Consultando o nó associado à operação no banco de dados
-                No no = _repositorioConsulta.Consulta<No>(x => x.Id == operacao.NoId).FirstOrDefault();
-
-                // Verificando se o nó foi encontrado
-                if (no == null)
+                // Obtendo o nó associado à operação a partir dos dados pré-carregados
+                if (!nosPorId.TryGetValue(operacao.NoId, out No no))
                 {
                     resposta.Status = 404;
                     resposta.Retorno.Add(new MensagemRetorno($"Nao foi possivel achar o no com id {operacao.NoId} para a operacao com id {operacao.Id}", true));
@@ -73,6 +76,7 @@ namespace ConectaSTI.Executor.Servicos
                 // Variáveis para controle de tentativas e sucesso da execução do nó, que podem ser usadas para implementar políticas de repetição em caso de falhas
                 int tentativas = 0;
                 bool sucesso = false;
+                bool deveTentarNovamente;
 
                 // Loop para executar o nó, que pode ser repetido de acordo com a política de repetição definida na operação em caso de falhas
                 do
@@ -125,13 +129,15 @@ namespace ConectaSTI.Executor.Servicos
 
                     // Se a execução do nó não foi bem-sucedida e a operação tem a política de repetição habilitada
                     // aguardar um tempo definido pela política de backoff antes de tentar novamente, incrementando o número de tentativas
-                    if (!sucesso && operacao.Repetir && tentativas < operacao.MaximoRepeticao)
+                    deveTentarNovamente = !sucesso && operacao.Repetir && tentativas <= operacao.MaximoRepeticao;
+
+                    if (deveTentarNovamente)
                     {
                         int delay = operacao.BackoffDelay * (int)Math.Pow(operacao.BackoffMultiplier, tentativas - 1);
 
                         await Task.Delay(delay);
                     }
-                } while (!sucesso && operacao.Repetir && tentativas <= operacao.MaximoRepeticao);
+                } while (deveTentarNovamente);
 
                 // Se a execução do nó não foi bem-sucedida após as tentativas de repetição
                 // verificar o tipo de erro definido na operação para decidir se deve falhar o fluxo, continuar para a próxima operação ou executar uma compensação

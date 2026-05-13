@@ -64,7 +64,7 @@ namespace ConectaSTI.Executor.Servicos
                 {
                     new MensagemRetorno()
                     {
-                        Mensagem = _servico.Mensagens.First().Mensagem
+                        Mensagem = _servico.Mensagens.FirstOrDefault()?.Mensagem ?? "Erro ao salvar o valor."
                     }
                 }
             };

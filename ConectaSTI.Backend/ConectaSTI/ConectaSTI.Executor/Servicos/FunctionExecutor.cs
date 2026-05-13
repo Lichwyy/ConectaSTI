@@ -1,16 +1,22 @@
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Interfaces;
 using FGB.Dominio.Interfaces.Utilitarios;
-using FGB.Dominio.ObjetoValor; // Referência para a sua RespostaHttp e MensagemRetorno
+using FGB.Dominio.ObjetoValor;
 using FGB.Servicos;
 using Jint;
 using System;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace ConectaSTI.Executor.Servicos;
 
 public class FunctionExecutor : IFunctionExecutor
 {
+    private const int MaxRecursionDepth = 10;
+    private static readonly TimeSpan ScriptTimeout = TimeSpan.FromSeconds(5);
+    private const int MaxScriptStatements = 5000;
+    private const string EmptyInputJson = "{}";
+
     private readonly IConverter _converter;
 
     public FunctionExecutor(IConverter converter)
@@ -29,27 +35,29 @@ public class FunctionExecutor : IFunctionExecutor
 
         var engine = new Engine(options =>
         {
-            options.LimitRecursion(10)
-                .TimeoutInterval(TimeSpan.FromSeconds(5))
-                .MaxStatements(5000)
+            options.LimitRecursion(MaxRecursionDepth)
+                .TimeoutInterval(ScriptTimeout)
+                .MaxStatements(MaxScriptStatements)
                 .Strict();
         });
 
         try
         {
-            string jsonInput = "{}";
-
-            if (dadoAnterior != null)
+            if (funcao == null)
             {
-                if (dadoAnterior is string dadoString)
-                {
-                    jsonInput = dadoString; 
-                }
-                else
-                {
-                    jsonInput = _converter.Serializar(dadoAnterior, TipoSerializacao.None);
-                }
+                resposta.Status = 404;
+                resposta.Retorno.Add(new MensagemRetorno("Função não encontrada.", true));
+                return resposta;
             }
+
+            if (string.IsNullOrWhiteSpace(funcao.CorpoDaFuncao))
+            {
+                resposta.Status = 400;
+                resposta.Retorno.Add(new MensagemRetorno("Corpo da função JS não pode ser vazio.", true));
+                return resposta;
+            }
+
+            string jsonInput = PrepararInputJson(dadoAnterior);
 
             engine.SetValue("rawInputString", jsonInput);
 
@@ -100,5 +108,32 @@ public class FunctionExecutor : IFunctionExecutor
         }
 
         return resposta;
+    }
+
+    private string PrepararInputJson(object dadoAnterior)
+    {
+        if (dadoAnterior == null)
+            return EmptyInputJson;
+
+        if (dadoAnterior is string dadoString)
+            return IsValidJson(dadoString) ? dadoString : _converter.Serializar(dadoString, TipoSerializacao.None);
+
+        return _converter.Serializar(dadoAnterior, TipoSerializacao.None);
+    }
+
+    private static bool IsValidJson(string valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return false;
+
+        try
+        {
+            using var _ = JsonDocument.Parse(valor);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }
