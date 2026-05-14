@@ -8,6 +8,7 @@ public class Funcao : EntidadeBase
     [Obrigar]
     public string Nome { get; set; }
     [Obrigar]
+    
     public string CorpoDaFuncao { get; set; }
     public string Parametro { get; set; }
 }

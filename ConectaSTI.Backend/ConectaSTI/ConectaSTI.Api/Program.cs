@@ -15,7 +15,11 @@ public class Program
 
         // Add services to the container.
 
-        builder.Services.AddControllers().AddOData(opt =>
+        builder.Services.AddControllers(opt =>
+                {
+                    opt.InputFormatters.Insert(0, new PlainTextInputFormatter());
+                })
+            .AddOData(opt =>
             opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000)).AddJsonOptions(opt =>
                 {
                     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
