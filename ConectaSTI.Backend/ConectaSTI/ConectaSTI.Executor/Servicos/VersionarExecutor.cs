@@ -23,12 +23,16 @@ public class VersionarExecutor :  IVersionarExecutor
     public FluxoVersionado Execute(long fluxoId)
     {
         Fluxo fluxo = _consulta.Retorna<Fluxo>(fluxoId);
+
+        int ultimaVersao = _consulta.Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId).Select(x => (int?)x.Versao)
+            .Max() ?? 0;
+        int proximaVersao = ultimaVersao + 1;
         
         FluxoVersionado fluxoVersionado = new FluxoVersionado()
         {
             FluxoId = fluxoId,
             Nome = fluxo.Nome,
-            Versao = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"),
+            Versao = proximaVersao,
         };
         
         var opcoes = new JsonSerializerOptions

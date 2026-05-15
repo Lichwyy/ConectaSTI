@@ -1,0 +1,14 @@
+WITH versoes_ordenadas AS (
+    SELECT id, ROW_NUMBER() OVER (PARTITION BY fluxo_id ORDER BY id) AS proxima_versao
+    FROM fluxo_versionado
+)
+UPDATE fluxo_versionado fluxo
+SET versao = versoes_ordenadas.proxima_versao::text
+FROM versoes_ordenadas
+WHERE fluxo.id = versoes_ordenadas.id;
+
+ALTER TABLE fluxo_versionado
+    ALTER COLUMN versao TYPE INT USING versao::INT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_fluxo_versionado_fluxo_id_versao
+    ON fluxo_versionado (fluxo_id, versao);

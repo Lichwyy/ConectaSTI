@@ -8,6 +8,7 @@ using FGB.Servicos;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace ConectaSTI.Executor.Servicos
 {
@@ -19,8 +20,9 @@ namespace ConectaSTI.Executor.Servicos
             _servico = servico;
         }
 
-        public RespostaHttp<object> Salvar(No no)
+        public RespostaHttp<object> Salvar(No no, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // Validando o No de entrada
             if (no == null)
             {
@@ -45,6 +47,7 @@ namespace ConectaSTI.Executor.Servicos
                 Valor = no.Body,
                 Validade = DateTime.Now.AddMinutes(no.TempoMinutoValidade)
             };
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Salvando o Storage usando o serviço de CRUD
             if (_servico.Inclui(storage))
@@ -70,8 +73,9 @@ namespace ConectaSTI.Executor.Servicos
             };
         }
 
-        public RespostaHttp<object> Pegar(string chave)
+        public RespostaHttp<object> Pegar(string chave, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // Validando a chave de entrada
             if (String.IsNullOrWhiteSpace(chave))
             {
@@ -91,6 +95,7 @@ namespace ConectaSTI.Executor.Servicos
 
             // Consultando o Storage usando a chave fornecida
             var storage = _servico.Consulta(x => x.Chave == chave).FirstOrDefault();
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Verificando se o Storage foi encontrado
             if (storage == null)

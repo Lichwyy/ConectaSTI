@@ -12,7 +12,7 @@
 
     <property name="FluxoId" column="fluxo_id" type="long" not-null="true" />
     <property name="Nome" column="nome" type="string" not-null="true" />
-    <property name="Versao" column="versao" type="string" not-null="true" />
+    <property name="Versao" column="versao" type="int" not-null="true" />
     <property name="Payload" column="payload" type="StringClob" not-null="true" />
   </class>
 </hibernate-mapping>

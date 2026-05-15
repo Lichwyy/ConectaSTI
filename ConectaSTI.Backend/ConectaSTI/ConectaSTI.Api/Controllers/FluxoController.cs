@@ -16,8 +16,8 @@ public class FluxoController : CrudControllerBase<Fluxo, Fluxo>
         _versionarExecutor = versionarExecutor;
     }
     
-    [HttpPost("{fluxoId:int}")]
-    public virtual IActionResult Post(int fluxoId)
+    [HttpPost("{fluxoId:long}")]
+    public virtual IActionResult Post(long fluxoId)
     {
         var fluxoVersionado = _versionarExecutor.Execute(fluxoId);
         

@@ -7,6 +7,7 @@ using Jint;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Threading;
 
 namespace ConectaSTI.Executor.Servicos;
 
@@ -24,8 +25,9 @@ public class FunctionExecutor : IFunctionExecutor
         _converter = converter;
     }
     
-    public RespostaHttp<object> Executar(Funcao funcao, object dadoAnterior)
+    public RespostaHttp<object> Executar(Funcao funcao, object dadoAnterior, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var resposta = new RespostaHttp<object>
         {
             Accept = AcceptProxy.Json
@@ -37,6 +39,7 @@ public class FunctionExecutor : IFunctionExecutor
         {
             options.LimitRecursion(MaxRecursionDepth)
                 .TimeoutInterval(ScriptTimeout)
+                .CancellationToken(cancellationToken)
                 .MaxStatements(MaxScriptStatements)
                 .Strict();
         });
@@ -95,6 +98,11 @@ public class FunctionExecutor : IFunctionExecutor
         {
             resposta.Status = 408; 
             resposta.Retorno.Add(new MensagemRetorno("Timeout: O script demorou mais que 5 segundos para rodar.", true));
+        }
+        catch (OperationCanceledException)
+        {
+            resposta.Status = 408;
+            resposta.Retorno.Add(new MensagemRetorno("Execucao cancelada por timeout do fluxo.", true));
         }
         catch (Exception ex)
         {

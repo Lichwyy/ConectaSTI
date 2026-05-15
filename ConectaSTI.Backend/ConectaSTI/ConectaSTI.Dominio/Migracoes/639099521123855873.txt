@@ -4,7 +4,10 @@ CREATE TABLE IF NOT EXISTS fluxo_versionado (
     ultimaalteracao TIMESTAMP NULL,
     fluxo_id BIGINT NOT NULL,
     nome VARCHAR(255) NOT NULL,
-    versao VARCHAR(255) NOT NULL,
+    versao INT NOT NULL,
     payload TEXT NOT NULL,
     CONSTRAINT fk_fluxo_versionado_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_fluxo_versionado_fluxo_id_versao
+    ON fluxo_versionado (fluxo_id, versao);

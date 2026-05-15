@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Diagnostics;
+using System.Threading;
 using ConectaSTI.Dominio.DTOs;
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Entidades.Logs;
@@ -59,7 +60,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         LogFluxo logFluxo = new LogFluxo
         {
             FluxoId = fluxoVersionado.FluxoId,
-            Versao = fluxoVersionado.Versao
+            Versao = fluxoVersionado.Versao.ToString()
         };
 
         if (!_servicoLogFluxo.Inclui(logFluxo))
@@ -104,7 +105,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 finalizadoEm = resultadoExecucao.FinalizadoEm;
                 bool sucesso = IsSuccessResponse(respostaNo);
 
-                bool deveTentarNovamente = !sucesso && operacaoDto.Repetir && tentativas <= operacaoDto.MaximoRepeticao;
+                bool deveTentarNovamente = !sucesso && operacaoDto.Repetir && (tentativas - 1) <= operacaoDto.MaximoRepeticao;
                 if (deveTentarNovamente)
                 {
                     int delay = CalcularAtraso(operacaoDto, tentativas);
@@ -144,7 +145,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                         return respostaNo;
                     case TipoErro.ContinuarFluxo:
                         break;
-                    case TipoErro.ExecutarCompensação:
+                    case TipoErro.ExecutarCompensacao:
                         return CreateErrorResponse(501, "Compensacao ainda nao implementada para fluxo versionado.");
                     default:
                         return CreateErrorResponse(400, $"Tipo de erro invalido: {operacaoDto.Erro}");
@@ -170,7 +171,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         {
             try
             {
-                RespostaHttp<object> resposta = ExecuteNo(no, dadoAnterior, usarDadoAnterior);
+                RespostaHttp<object> resposta = ExecuteNo(no, dadoAnterior, usarDadoAnterior, CancellationToken.None);
                 stopwatch.Stop();
                 return new ResultadoExecucaoOperacao(resposta, null, iniciadoEm, iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
             }
@@ -181,25 +182,25 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             }
         }
 
-        Task<RespostaHttp<object>> execucao = Task.Run(() => ExecuteNo(no, dadoAnterior, usarDadoAnterior));
-        Task timeoutTask = Task.Delay(timeout);
-
-        Task concluida = await Task.WhenAny(execucao, timeoutTask);
-        if (concluida == timeoutTask)
-        {
-            stopwatch.Stop();
-            return new ResultadoExecucaoOperacao(
-                CreateErrorResponse(408, $"Tempo limite de {timeout}ms excedido na execucao do no {no.Id}."),
-                null,
-                iniciadoEm,
-                iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
-        }
+        using CancellationTokenSource timeoutCts = new CancellationTokenSource(timeout);
+        Task<RespostaHttp<object>> execucao = Task.Run(
+            () => ExecuteNo(no, dadoAnterior, usarDadoAnterior, timeoutCts.Token),
+            timeoutCts.Token);
 
         try
         {
             RespostaHttp<object> resposta = await execucao;
             stopwatch.Stop();
             return new ResultadoExecucaoOperacao(resposta, null, iniciadoEm, iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
+        }
+        catch (OperationCanceledException ex) when (timeoutCts.IsCancellationRequested)
+        {
+            stopwatch.Stop();
+            return new ResultadoExecucaoOperacao(
+                CreateErrorResponse(408, $"Tempo limite de {timeout}ms excedido na execucao do no {no.Id}."),
+                ex,
+                iniciadoEm,
+                iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
         }
         catch (Exception ex)
         {
@@ -208,8 +209,10 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         }
     }
 
-    private RespostaHttp<object> ExecuteNo(No no, object dadoAnterior, bool usarDadoAnterior)
+    private RespostaHttp<object> ExecuteNo(No no, object dadoAnterior, bool usarDadoAnterior, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (no == null)
         {
             return CreateErrorResponse(404, "No nao encontrado.");
@@ -224,7 +227,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 {
                     no.Body = dadoAnterior?.ToString();
                 }
-                resposta = _requestExecutor.EnviarRequisicao(no);
+                resposta = _requestExecutor.EnviarRequisicao(no, cancellationToken);
                 break;
             case TipoNo.FuncaoJS:
                 if (!no.FuncaoId.HasValue)
@@ -238,14 +241,14 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                     return CreateErrorResponse(404, $"Nao foi possivel achar a funcao com id {no.FuncaoId} para o no com id {no.Id}");
                 }
 
-                resposta = _functionExecutor.Executar(funcao, dadoAnterior);
+                resposta = _functionExecutor.Executar(funcao, dadoAnterior, cancellationToken);
                 break;
             case TipoNo.SalvarStorage:
                 no.Body = dadoAnterior?.ToString();
-                resposta = _storageExecutor.Salvar(no);
+                resposta = _storageExecutor.Salvar(no, cancellationToken);
                 break;
             case TipoNo.PegarStorage:
-                resposta = _storageExecutor.Pegar(no.ChaveValor);
+                resposta = _storageExecutor.Pegar(no.ChaveValor, cancellationToken);
                 break;
             default:
                 return CreateErrorResponse(400, $"Tipo de no invalido: {no.Tipo}");
