@@ -5,7 +5,7 @@ using FGB.Api.Controllers;
 
 namespace ConectaSTI.Api.Controllers;
 
-public class OperacaoController : CrudControllerBase<Operacao, Operacao>
+public class OperacaoController : ConsultaControllerBase<Operacao, Operacao>
 {
     public OperacaoController(ServicoOperacao servico, IMapper mapper) : base(servico, mapper)
     {

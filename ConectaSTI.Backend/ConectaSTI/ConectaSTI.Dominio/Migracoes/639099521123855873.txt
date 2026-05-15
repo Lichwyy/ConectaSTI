@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS fluxo_versionado (
+    id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
+    fluxo_id BIGINT NOT NULL,
+    nome VARCHAR(255) NOT NULL,
+    versao VARCHAR(255) NOT NULL,
+    payload TEXT NOT NULL,
+    CONSTRAINT fk_fluxo_versionado_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
+);

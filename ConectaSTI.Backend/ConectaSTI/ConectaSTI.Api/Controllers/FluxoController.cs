@@ -1,13 +1,26 @@
 using AutoMapper;
 using ConectaSTI.Dominio.Entidades;
+using ConectaSTI.Dominio.Interfaces;
 using ConectaSTI.Dominio.Servicos;
 using FGB.Api.Controllers;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ConectaSTI.Api.Controllers;
 
 public class FluxoController : CrudControllerBase<Fluxo, Fluxo>
 {
-    public FluxoController(ServicoFluxo servico, IMapper mapper) : base(servico, mapper)
+    private IVersionarExecutor _versionarExecutor;
+    
+    public FluxoController(ServicoFluxo servico, IMapper mapper, IVersionarExecutor versionarExecutor) : base(servico, mapper)
     {
+        _versionarExecutor = versionarExecutor;
+    }
+    
+    [HttpPost("{fluxoId:int}")]
+    public virtual IActionResult Post(int fluxoId)
+    {
+        var fluxoVersionado = _versionarExecutor.Execute(fluxoId);
+        
+        return Ok(fluxoVersionado);
     }
 }
