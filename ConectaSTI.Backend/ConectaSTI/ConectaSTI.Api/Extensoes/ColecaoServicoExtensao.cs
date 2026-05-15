@@ -15,6 +15,8 @@ namespace ConectaSTI.Api.Extensoes
             services.AddTransient<ServicoOperacao>();
             services.AddTransient<ServicoStorage>();
             services.AddTransient<ServicoFluxoVersionado>();
+            services.AddTransient<ServicoLogFluxo>();
+            services.AddTransient<ServicoLogOperacao>();
 
             return services;
         }

@@ -10,6 +10,9 @@ namespace ConectaSTI.Dominio.Entidades.Logs
     public class LogOperacao  : EntidadeBase
     {
         public long LogFluxoId { get; set; }
+        public long NoId { get; set; }
+        public long? FuncaoId { get; set; }
+        public long? EndPointId { get; set; }
         
         //Integracao
         public string Nome { get; set; }
@@ -37,5 +40,21 @@ namespace ConectaSTI.Dominio.Entidades.Logs
         public int BackoffDelay { get; set; } = 0;
         public double BackoffMultiplier { get; set; } = 1.0;
         public int Timeout { get; set; } = 30000;
+
+        // Resultado da execucao
+        public DateTime IniciadoEm { get; set; }
+        public DateTime FinalizadoEm { get; set; }
+        public int DuracaoMs { get; set; }
+        public int TentativasRealizadas { get; set; }
+        public int AtrasoTotalMs { get; set; }
+        public int StatusHttp { get; set; }
+        public bool Sucesso { get; set; }
+        public string DadoAnterior { get; set; }
+        public string Resposta { get; set; }
+        public string RespostaBody { get; set; }
+        public string MensagensRetorno { get; set; }
+        public string MensagemErro { get; set; }
+        public string ExceptionTipo { get; set; }
+        public string StackTrace { get; set; }
     }
 }

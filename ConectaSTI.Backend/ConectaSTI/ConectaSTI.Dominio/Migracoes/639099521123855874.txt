@@ -1,0 +1,35 @@
+CREATE TABLE IF NOT EXISTS log_fluxo (
+    id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
+    fluxo_id BIGINT NOT NULL,
+    versao VARCHAR(255) NOT NULL,
+    CONSTRAINT fk_log_fluxo_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS log_operacao (
+    id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
+    log_fluxo_id BIGINT NOT NULL,
+    nome VARCHAR(255),
+    url VARCHAR(500),
+    recurso VARCHAR(255),
+    verbo INT NOT NULL,
+    token VARCHAR(500),
+    tipo INT NOT NULL,
+    body TEXT,
+    headers TEXT,
+    chave_valor VARCHAR(255),
+    tempo_minuto_validade INT NOT NULL DEFAULT 0,
+    ordem INT NOT NULL,
+    repetir BOOLEAN NOT NULL DEFAULT FALSE,
+    usar_dados_anterior BOOLEAN NOT NULL DEFAULT FALSE,
+    erro INT NOT NULL,
+    maximo_repeticao INT NOT NULL DEFAULT 0,
+    backoff_type INT NOT NULL DEFAULT 1,
+    backoff_delay INT NOT NULL DEFAULT 0,
+    backoff_multiplier DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    timeout INT NOT NULL DEFAULT 30000,
+    CONSTRAINT fk_log_operacao_log_fluxo FOREIGN KEY (log_fluxo_id) REFERENCES log_fluxo (id) ON DELETE CASCADE
+);
