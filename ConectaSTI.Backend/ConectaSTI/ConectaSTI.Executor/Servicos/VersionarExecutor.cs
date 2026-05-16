@@ -11,48 +11,54 @@ namespace ConectaSTI.Executor.Servicos;
 
 public class VersionarExecutor :  IVersionarExecutor
 {
+    private readonly IRepositorioSessao _repositorioSessao;
     private readonly IRepositorioConsulta _consulta;
     private readonly ServicoFluxoVersionado _fluxoVersionado;
 
-    public VersionarExecutor(IRepositorioConsulta consulta,  ServicoFluxoVersionado fluxoVersionado)
+    public VersionarExecutor(IRepositorioSessao repositorioSessao, IRepositorioConsulta consulta,  ServicoFluxoVersionado fluxoVersionado)
     {
+        _repositorioSessao = repositorioSessao;
         _consulta = consulta;
         _fluxoVersionado = fluxoVersionado;
     }
     
     public FluxoVersionado Execute(long fluxoId)
     {
-        Fluxo fluxo = _consulta.Retorna<Fluxo>(fluxoId);
-
-        int ultimaVersao = _consulta.Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId).Select(x => (int?)x.Versao)
-            .Max() ?? 0;
-        int proximaVersao = ultimaVersao + 1;
-        
-        FluxoVersionado fluxoVersionado = new FluxoVersionado()
+        using (_repositorioSessao.IniciaTransacao())
         {
-            FluxoId = fluxoId,
-            Nome = fluxo.Nome,
-            Versao = proximaVersao,
-        };
-        
-        var opcoes = new JsonSerializerOptions
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            WriteIndented = false
-        };
+            Fluxo fluxo = _repositorioSessao.RetornaComLock<Fluxo>(fluxoId);
 
-        FluxoDTO fluxoDto = new FluxoDTO()
-        {
-            Operacoes =  GetAllOperation(fluxo)
-        };
+            int ultimaVersao = _consulta.Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId).Select(x => (int?)x.Versao)
+                .Max() ?? 0;
+            int proximaVersao = ultimaVersao + 1;
 
-        string fluxoSerializado = JsonSerializer.Serialize(fluxoDto, opcoes);
-        
-        fluxoVersionado.Payload = fluxoSerializado;
-        
-        _fluxoVersionado.Inclui(fluxoVersionado);
-        
-        return fluxoVersionado;
+            FluxoVersionado fluxoVersionado = new FluxoVersionado()
+            {
+                FluxoId = fluxoId,
+                Nome = fluxo.Nome,
+                Versao = proximaVersao,
+            };
+
+            var opcoes = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                WriteIndented = false
+            };
+
+            FluxoDTO fluxoDto = new FluxoDTO()
+            {
+                Operacoes =  GetAllOperation(fluxo)
+            };
+
+            string fluxoSerializado = JsonSerializer.Serialize(fluxoDto, opcoes);
+
+            fluxoVersionado.Payload = fluxoSerializado;
+
+            _fluxoVersionado.Inclui(fluxoVersionado);
+            _repositorioSessao.CommitaTransacao();
+
+            return fluxoVersionado;
+        }
     }
 
     private List<OperacaoDTO> GetAllOperation(Fluxo fluxo)

@@ -19,8 +19,8 @@ public class FluxoController : CrudControllerBase<Fluxo, Fluxo>
         _fluxoExecutor = fluxoExecutor;
     }
     
-    [HttpPost("/versionarfluxo/{fluxoId:long}")]
-    public virtual IActionResult Post(long fluxoId)
+    [HttpPost("/salvarFluxo/{fluxoId:long}")]
+    public virtual IActionResult SalvarFluxo(long fluxoId)
     {
         var fluxoVersionado = _versionarExecutor.Execute(fluxoId);
         
@@ -28,7 +28,7 @@ public class FluxoController : CrudControllerBase<Fluxo, Fluxo>
     }
 
     [HttpPost("/executarfluxo/{fluxoId}")]
-    public async Task<IActionResult> TestarFluxo(long fluxoId)
+    public async Task<IActionResult> ExecutarFluxo(long fluxoId)
     {
         var resultado = await _fluxoExecutor.Executar(fluxoId);
 

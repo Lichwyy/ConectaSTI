@@ -105,7 +105,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 finalizadoEm = resultadoExecucao.FinalizadoEm;
                 bool sucesso = IsSuccessResponse(respostaNo);
 
-                bool deveTentarNovamente = !sucesso && operacaoDto.Repetir && (tentativas - 1) <= operacaoDto.MaximoRepeticao;
+                bool deveTentarNovamente = !sucesso && operacaoDto.Repetir && (tentativas) <= operacaoDto.MaximoRepeticao;
                 if (deveTentarNovamente)
                 {
                     int delay = CalcularAtraso(operacaoDto, tentativas);

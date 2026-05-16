@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FGB.Entidades;
 
 namespace FGB.IRepositorios
 {
@@ -11,6 +12,8 @@ namespace FGB.IRepositorios
         IRepositorioConsulta GetRepositorioConsulta();
 
         IRepositorio GetRepositorio();
+
+        T RetornaComLock<T>(long id) where T : EntidadeBase;
 
         IDisposable IniciaTransacao();
 
