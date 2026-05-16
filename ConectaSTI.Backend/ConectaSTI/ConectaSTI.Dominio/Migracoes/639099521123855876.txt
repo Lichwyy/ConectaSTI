@@ -3,12 +3,12 @@ WITH versoes_ordenadas AS (
     FROM fluxo_versionado
 )
 UPDATE fluxo_versionado fluxo
-SET versao = versoes_ordenadas.proxima_versao::text
+SET versao = versoes_ordenadas.proxima_versao
 FROM versoes_ordenadas
 WHERE fluxo.id = versoes_ordenadas.id;
 
 ALTER TABLE fluxo_versionado
-    ALTER COLUMN versao TYPE INT USING versao::INT;
+    ALTER COLUMN versao TYPE INT USING CAST(versao AS INT);
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_fluxo_versionado_fluxo_id_versao
     ON fluxo_versionado (fluxo_id, versao);
