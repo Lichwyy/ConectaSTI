@@ -5,5 +5,5 @@ namespace ConectaSTI.Dominio.Entidades.Logs;
 public class LogFluxo : EntidadeBase
 {
     public long FluxoId { get; set; }
-    public string Versao { get; set; }
+    public int Versao { get; set; }
 }

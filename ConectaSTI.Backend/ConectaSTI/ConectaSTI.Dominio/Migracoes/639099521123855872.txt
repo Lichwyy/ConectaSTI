@@ -1,6 +1,0 @@
-ALTER TABLE operacao
-    ADD COLUMN IF NOT EXISTS usar_dados_anterior BOOLEAN NOT NULL DEFAULT FALSE;
-
-UPDATE operacao
-SET usar_dados_anterior = FALSE
-WHERE usar_dados_anterior IS NULL;

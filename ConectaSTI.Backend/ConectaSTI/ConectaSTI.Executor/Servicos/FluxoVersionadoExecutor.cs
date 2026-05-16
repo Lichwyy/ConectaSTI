@@ -60,7 +60,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         LogFluxo logFluxo = new LogFluxo
         {
             FluxoId = fluxoVersionado.FluxoId,
-            Versao = fluxoVersionado.Versao.ToString()
+            Versao = fluxoVersionado.Versao
         };
 
         if (!_servicoLogFluxo.Inclui(logFluxo))
