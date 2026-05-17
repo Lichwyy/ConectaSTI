@@ -10,10 +10,7 @@ namespace ConectaSTI.Api.Controllers;
 
 public class NoController : CrudControllerBase<No, No>
 {
-    private readonly ServicoNo _servico;
-
     public NoController(ServicoNo servico, IMapper mapper) : base(servico, mapper)
     {
-        _servico = servico;
     }
 }
