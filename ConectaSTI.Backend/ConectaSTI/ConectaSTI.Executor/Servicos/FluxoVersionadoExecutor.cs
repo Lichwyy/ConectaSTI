@@ -167,37 +167,30 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         DateTime iniciadoEm = DateTime.Now;
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        if (timeout <= 0)
-        {
-            try
-            {
-                RespostaHttp<object> resposta = ExecuteNo(no, dadoAnterior, usarDadoAnterior, CancellationToken.None);
-                stopwatch.Stop();
-                return new ResultadoExecucaoOperacao(resposta, null, iniciadoEm, iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                return new ResultadoExecucaoOperacao(CreateErrorResponse(500, ex.Message), ex, iniciadoEm, iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
-            }
-        }
-
-        using CancellationTokenSource timeoutCts = new CancellationTokenSource(timeout);
-        Task<RespostaHttp<object>> execucao = Task.Run(
-            () => ExecuteNo(no, dadoAnterior, usarDadoAnterior, timeoutCts.Token),
-            timeoutCts.Token);
-
         try
         {
-            RespostaHttp<object> resposta = await execucao;
+            using CancellationTokenSource timeoutCts =
+                timeout > 0
+                    ? new CancellationTokenSource(timeout)
+                    : new CancellationTokenSource();
+
+            RespostaHttp<object> resposta =
+                await ExecuteNo(no, dadoAnterior, usarDadoAnterior, timeoutCts.Token);
+
             stopwatch.Stop();
-            return new ResultadoExecucaoOperacao(resposta, null, iniciadoEm, iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
+
+            return new ResultadoExecucaoOperacao(
+                resposta,
+                null,
+                iniciadoEm,
+                iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
         }
-        catch (OperationCanceledException ex) when (timeoutCts.IsCancellationRequested)
+        catch (OperationCanceledException ex)
         {
             stopwatch.Stop();
+
             return new ResultadoExecucaoOperacao(
-                CreateErrorResponse(408, $"Tempo limite de {timeout}ms excedido na execucao do no {no.Id}."),
+                CreateErrorResponse(408, $"Timeout no nó {no.Id}"),
                 ex,
                 iniciadoEm,
                 iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
@@ -205,11 +198,16 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         catch (Exception ex)
         {
             stopwatch.Stop();
-            return new ResultadoExecucaoOperacao(CreateErrorResponse(500, ex.Message), ex, iniciadoEm, iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
+
+            return new ResultadoExecucaoOperacao(
+                CreateErrorResponse(500, ex.Message),
+                ex,
+                iniciadoEm,
+                iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
         }
     }
 
-    private RespostaHttp<object> ExecuteNo(No no, object dadoAnterior, bool usarDadoAnterior, CancellationToken cancellationToken)
+    private async Task<RespostaHttp<object>> ExecuteNo(No no, object dadoAnterior, bool usarDadoAnterior, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -223,11 +221,28 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         switch (no.Tipo)
         {
             case TipoNo.Requisicao:
+                string headerOriginal = no.Headers;
+                string bodyOriginal = no.Body;
+
+                if (!string.IsNullOrWhiteSpace(no.Headers))
+                {
+                    no.Headers = InterpolarVariaveis(no.Headers, dadoAnterior);
+                }
+
+                if (!string.IsNullOrWhiteSpace(no.Body) && no.Body.Contains("{{"))
+                {
+                    no.Body = InterpolarVariaveis(no.Body, dadoAnterior);
+                }
+
                 if (usarDadoAnterior)
                 {
                     no.Body = dadoAnterior?.ToString();
                 }
+
                 resposta = _requestExecutor.EnviarRequisicao(no, cancellationToken);
+
+                no.Headers = headerOriginal;
+                no.Body = bodyOriginal;
                 break;
             case TipoNo.FuncaoJS:
                 if (!no.FuncaoId.HasValue)
@@ -249,6 +264,9 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 break;
             case TipoNo.PegarStorage:
                 resposta = _storageExecutor.Pegar(no.ChaveValor, cancellationToken);
+                break;
+            case TipoNo.Fluxo:
+                resposta = await Executar(no.FluxoId.Value);
                 break;
             default:
                 return CreateErrorResponse(400, $"Tipo de no invalido: {no.Tipo}");
@@ -434,5 +452,41 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         public Exception Exception { get; }
         public DateTime IniciadoEm { get; }
         public DateTime FinalizadoEm { get; }
+    }
+
+    private string InterpolarVariaveis(string textoAlvo, object dadoAnterior)
+    {
+        if (string.IsNullOrWhiteSpace(textoAlvo) || dadoAnterior == null)
+            return textoAlvo;
+
+        try
+        {
+            string jsonString = dadoAnterior is string str ? str : SerializeSafe(dadoAnterior);
+            using JsonDocument document = JsonDocument.Parse(jsonString);
+
+            if (document.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                string textoResultante = textoAlvo;
+
+                foreach (var propriedade in document.RootElement.EnumerateObject())
+                {
+                    string marcador = "{{" + propriedade.Name + "}}";
+                    if (textoResultante.Contains(marcador))
+                    {
+                        string valorParaSubstituir = propriedade.Value.ValueKind == JsonValueKind.String
+                            ? propriedade.Value.GetString()
+                            : propriedade.Value.GetRawText();
+
+                        textoResultante = textoResultante.Replace(marcador, valorParaSubstituir);
+                    }
+                }
+                return textoResultante;
+            }
+        }
+        catch
+        {
+        }
+
+        return textoAlvo;
     }
 }

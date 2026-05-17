@@ -56,10 +56,12 @@ CREATE TABLE IF NOT EXISTS no (
 	headers TEXT,
 	funcao_id BIGINT NULL,
 	end_point_id BIGINT NULL,
+	fluxo_id BIGINT NULL,
 	chave_valor VARCHAR(255),
 	tempo_minuto_validade INT NOT NULL DEFAULT 0,
 	CONSTRAINT fk_no_funcao FOREIGN KEY (funcao_id) REFERENCES funcao (id) ON DELETE SET NULL,
-	CONSTRAINT fk_no_end_point FOREIGN KEY (end_point_id) REFERENCES end_point (id) ON DELETE SET NULL
+	CONSTRAINT fk_no_end_point FOREIGN KEY (end_point_id) REFERENCES end_point (id) ON DELETE SET NULL,
+	CONSTRAINT fk_no_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS operacao (
