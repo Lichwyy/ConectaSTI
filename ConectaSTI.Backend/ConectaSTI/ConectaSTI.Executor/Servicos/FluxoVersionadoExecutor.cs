@@ -217,12 +217,13 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         }
 
         RespostaHttp<object> resposta = new RespostaHttp<object>();
-        
+
+        string bodyOriginal = no.Body;
+
         switch (no.Tipo)
         {
             case TipoNo.Requisicao:
                 string headerOriginal = no.Headers;
-                string bodyOriginal = no.Body;
 
                 if (!string.IsNullOrWhiteSpace(no.Headers))
                 {
@@ -261,6 +262,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             case TipoNo.SalvarStorage:
                 no.Body = dadoAnterior?.ToString();
                 resposta = _storageExecutor.Salvar(no, cancellationToken);
+                no.Body = bodyOriginal;
                 break;
             case TipoNo.PegarStorage:
                 resposta = _storageExecutor.Pegar(no.ChaveValor, cancellationToken);
