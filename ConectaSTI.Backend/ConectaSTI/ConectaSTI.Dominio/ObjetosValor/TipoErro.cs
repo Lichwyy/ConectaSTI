@@ -5,6 +5,6 @@ namespace ConectaSTI.Dominio.ObjetosValor
     {
         FalharFluxo = 1,
         ContinuarFluxo = 2,
-        ExecutarCompensação = 3
+        ExecutarCompensacao = 3
     }
 }

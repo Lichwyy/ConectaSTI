@@ -1,16 +1,23 @@
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Interfaces;
 using FGB.Dominio.Interfaces.Utilitarios;
-using FGB.Dominio.ObjetoValor; // Referência para a sua RespostaHttp e MensagemRetorno
+using FGB.Dominio.ObjetoValor;
 using FGB.Servicos;
 using Jint;
 using System;
 using System.Diagnostics;
+using System.Text.Json;
+using System.Threading;
 
 namespace ConectaSTI.Executor.Servicos;
 
 public class FunctionExecutor : IFunctionExecutor
 {
+    private const int MaxRecursionDepth = 10;
+    private static readonly TimeSpan ScriptTimeout = TimeSpan.FromSeconds(5);
+    private const int MaxScriptStatements = 5000;
+    private const string EmptyInputJson = "{}";
+
     private readonly IConverter _converter;
 
     public FunctionExecutor(IConverter converter)
@@ -18,8 +25,9 @@ public class FunctionExecutor : IFunctionExecutor
         _converter = converter;
     }
     
-    public RespostaHttp<object> Executar(Funcao funcao, object dadoAnterior)
+    public RespostaHttp<object> Executar(Funcao funcao, object dadoAnterior, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var resposta = new RespostaHttp<object>
         {
             Accept = AcceptProxy.Json
@@ -29,17 +37,30 @@ public class FunctionExecutor : IFunctionExecutor
 
         var engine = new Engine(options =>
         {
-            options.LimitRecursion(10)
-                .TimeoutInterval(TimeSpan.FromSeconds(5))
-                .MaxStatements(5000)
+            options.LimitRecursion(MaxRecursionDepth)
+                .TimeoutInterval(ScriptTimeout)
+                .CancellationToken(cancellationToken)
+                .MaxStatements(MaxScriptStatements)
                 .Strict();
         });
 
         try
         {
-            string jsonInput = dadoAnterior != null
-                ? _converter.Serializar(dadoAnterior, TipoSerializacao.None)
-                : "{}";
+            if (funcao == null)
+            {
+                resposta.Status = 404;
+                resposta.Retorno.Add(new MensagemRetorno("Função não encontrada.", true));
+                return resposta;
+            }
+
+            if (string.IsNullOrWhiteSpace(funcao.CorpoDaFuncao))
+            {
+                resposta.Status = 400;
+                resposta.Retorno.Add(new MensagemRetorno("Corpo da função JS não pode ser vazio.", true));
+                return resposta;
+            }
+
+            string jsonInput = PrepararInputJson(dadoAnterior);
 
             engine.SetValue("rawInputString", jsonInput);
 
@@ -51,7 +72,6 @@ public class FunctionExecutor : IFunctionExecutor
                         {funcao.CorpoDaFuncao}
                     }})();
 
-                    // Se for um objeto, devolve JSON, se for primitivo, devolve string
                     return typeof resultadoUsuario === 'object' 
                         ? JSON.stringify(resultadoUsuario) 
                         : String(resultadoUsuario);
@@ -79,6 +99,11 @@ public class FunctionExecutor : IFunctionExecutor
             resposta.Status = 408; 
             resposta.Retorno.Add(new MensagemRetorno("Timeout: O script demorou mais que 5 segundos para rodar.", true));
         }
+        catch (OperationCanceledException)
+        {
+            resposta.Status = 408;
+            resposta.Retorno.Add(new MensagemRetorno("Execucao cancelada por timeout do fluxo.", true));
+        }
         catch (Exception ex)
         {
             resposta.Status = 500;
@@ -91,5 +116,32 @@ public class FunctionExecutor : IFunctionExecutor
         }
 
         return resposta;
+    }
+
+    private string PrepararInputJson(object dadoAnterior)
+    {
+        if (dadoAnterior == null)
+            return EmptyInputJson;
+
+        if (dadoAnterior is string dadoString)
+            return IsValidJson(dadoString) ? dadoString : _converter.Serializar(dadoString, TipoSerializacao.None);
+
+        return _converter.Serializar(dadoAnterior, TipoSerializacao.None);
+    }
+
+    private static bool IsValidJson(string valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return false;
+
+        try
+        {
+            using var _ = JsonDocument.Parse(valor);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }

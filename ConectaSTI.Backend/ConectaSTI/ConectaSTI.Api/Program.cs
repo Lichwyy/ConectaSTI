@@ -15,7 +15,11 @@ public class Program
 
         // Add services to the container.
 
-        builder.Services.AddControllers().AddOData(opt =>
+        builder.Services.AddControllers(opt =>
+                {
+                    opt.InputFormatters.Insert(0, new PlainTextInputFormatter());
+                })
+            .AddOData(opt =>
             opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000)).AddJsonOptions(opt =>
                 {
                     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -31,6 +35,8 @@ public class Program
         builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
         builder.Services.AddTransient<IFunctionExecutor, FunctionExecutor>();
         builder.Services.AddTransient<IStorageExecutor, StorageExecutor>();
+        builder.Services.AddTransient<IFluxoExecutor, FluxoVersionadoExecutor>();
+        builder.Services.AddTransient<IVersionarExecutor, VersionarExecutor>();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {

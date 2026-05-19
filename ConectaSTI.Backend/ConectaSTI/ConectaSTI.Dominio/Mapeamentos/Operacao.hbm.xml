@@ -16,6 +16,7 @@
     <many-to-one name="Fluxo"   class="Fluxo"   column="fluxo_id"                               not-null="true" />
     <property name="FluxoId"                    column="fluxo_id"               type="long"     not-null="true" insert="false" update="false" />
     <property name="Repetir"                    column="repetir"                type="bool"     not-null="true" />
+    <property name="UsarDadosAnterior"          column="usar_dados_anterior"    type="bool"     not-null="true" />
     <property name="Erro"                       column="erro"                                   not-null="true" />
     <property name="MaximoRepeticao"            column="maximo_repeticao"       type="int"      not-null="true" />
     <property name="BackoffType"                column="backoff_type"                           not-null="true" />

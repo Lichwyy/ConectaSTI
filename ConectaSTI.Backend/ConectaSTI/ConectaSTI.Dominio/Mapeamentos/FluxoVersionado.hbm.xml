@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" assembly="ConectaSTI.Dominio" namespace="ConectaSTI.Dominio.Entidades">
+  <class name="FluxoVersionado" table="fluxo_versionado" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="id">
+      <generator class="sequence">
+        <param name="sequence">fluxo_versionado_id_seq</param>
+      </generator>
+    </id>
+
+    <property name="CriadoEm" column="criadoem" type="DateTime" not-null="false" />
+    <property name="UltimaAlteracao" column="ultimaalteracao" type="DateTime" not-null="false" />
+
+    <property name="FluxoId" column="fluxo_id" type="long" not-null="true" />
+    <property name="Nome" column="nome" type="string" not-null="true" />
+    <property name="Versao" column="versao" type="int" not-null="true" />
+    <property name="Payload" column="payload" type="StringClob" not-null="true" />
+  </class>
+</hibernate-mapping>

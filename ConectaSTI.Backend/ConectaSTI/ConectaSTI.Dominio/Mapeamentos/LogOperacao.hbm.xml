@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" assembly="ConectaSTI.Dominio" namespace="ConectaSTI.Dominio.Entidades.Logs">
+  <class name="LogOperacao" table="log_operacao" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="id">
+      <generator class="sequence">
+        <param name="sequence">log_operacao_id_seq</param>
+      </generator>
+    </id>
+
+    <property name="CriadoEm" column="criadoem" type="DateTime" not-null="false" />
+    <property name="UltimaAlteracao" column="ultimaalteracao" type="DateTime" not-null="false" />
+
+    <property name="LogFluxoId" column="log_fluxo_id" type="long" not-null="true" />
+    <property name="NoId" column="no_id" type="long" not-null="true" />
+    <property name="FuncaoId" column="funcao_id" type="long" not-null="false" />
+    <property name="EndPointId" column="end_point_id" type="long" not-null="false" />
+
+    <property name="Nome" column="nome" type="string" not-null="false" />
+    <property name="Url" column="url" type="string" not-null="false" />
+
+    <property name="Recurso" column="recurso" type="string" not-null="false" />
+    <property name="Verbo" column="verbo" not-null="true" />
+    <property name="Token" column="token" type="string" not-null="false" />
+
+    <property name="Tipo" column="tipo" not-null="true" />
+    <property name="Body" column="body" type="StringClob" not-null="false" />
+    <property name="Headers" column="headers" type="StringClob" not-null="false" />
+    <property name="ChaveValor" column="chave_valor" type="string" not-null="false" />
+    <property name="TempoMinutoValidade" column="tempo_minuto_validade" type="int" not-null="true" />
+
+    <property name="Ordem" column="ordem" type="int" not-null="true" />
+    <property name="Repetir" column="repetir" type="bool" not-null="true" />
+    <property name="UsarDadosAnterior" column="usar_dados_anterior" type="bool" not-null="true" />
+    <property name="Erro" column="erro" not-null="true" />
+    <property name="MaximoRepeticao" column="maximo_repeticao" type="int" not-null="true" />
+    <property name="BackoffType" column="backoff_type" not-null="true" />
+    <property name="BackoffDelay" column="backoff_delay" type="int" not-null="true" />
+    <property name="BackoffMultiplier" column="backoff_multiplier" type="double" not-null="true" />
+    <property name="Timeout" column="timeout" type="int" not-null="true" />
+
+    <property name="IniciadoEm" column="iniciado_em" type="DateTime" not-null="true" />
+    <property name="FinalizadoEm" column="finalizado_em" type="DateTime" not-null="true" />
+    <property name="DuracaoMs" column="duracao_ms" type="int" not-null="true" />
+    <property name="TentativasRealizadas" column="tentativas_realizadas" type="int" not-null="true" />
+    <property name="AtrasoTotalMs" column="atraso_total_ms" type="int" not-null="true" />
+    <property name="StatusHttp" column="status_http" type="int" not-null="true" />
+    <property name="Sucesso" column="sucesso" type="bool" not-null="true" />
+    <property name="DadoAnterior" column="dado_anterior" type="StringClob" not-null="false" />
+    <property name="Resposta" column="resposta" type="StringClob" not-null="false" />
+    <property name="RespostaBody" column="resposta_body" type="StringClob" not-null="false" />
+    <property name="MensagensRetorno" column="mensagens_retorno" type="StringClob" not-null="false" />
+    <property name="MensagemErro" column="mensagem_erro" type="StringClob" not-null="false" />
+    <property name="ExceptionTipo" column="exception_tipo" type="string" not-null="false" />
+    <property name="StackTrace" column="stack_trace" type="StringClob" not-null="false" />
+  </class>
+</hibernate-mapping>

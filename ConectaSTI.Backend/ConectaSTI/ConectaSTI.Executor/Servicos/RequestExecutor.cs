@@ -8,6 +8,7 @@ using FGB.Dominio.Interfaces.Utilitarios;
 using FGB.Dominio.ObjetoValor;
 using FGB.IRepositorios;
 using FGB.Servicos;
+using System.Threading;
 
 namespace ConectaSTI.Executor.Servicos
 {
@@ -24,8 +25,9 @@ namespace ConectaSTI.Executor.Servicos
             _converter = converter;
         }
         
-        public RespostaHttp<object> EnviarRequisicao(No nozinho)
+        public RespostaHttp<object> EnviarRequisicao(No nozinho, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var respostaRequisicao = new RespostaHttp<object>();
             
             if (nozinho == null)
@@ -103,6 +105,7 @@ namespace ConectaSTI.Executor.Servicos
             
             // Montagem do Verbo
             request.Verbo = endpointzinho.Verbo;
+            cancellationToken.ThrowIfCancellationRequested();
 
             return _request.Fetch<object>(request);
         }
