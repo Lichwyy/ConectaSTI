@@ -1,6 +1,5 @@
-using System.Text.Json;
 using System.Diagnostics;
-using System.Threading;
+using System.Text.Json;
 using ConectaSTI.Dominio.DTOs;
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.Entidades.Logs;
@@ -44,6 +43,20 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         return await Executar(fluxoId, null);
     }
 
+    public async Task<RespostaHttp<object>> ExecutarFluxoVersionado(long fluxoVersionadoId)
+    {
+        FluxoVersionado fluxoVersionado = _repositorioConsulta
+            .Consulta<FluxoVersionado>(x => x.Id == fluxoVersionadoId)
+            .FirstOrDefault();
+
+        if (fluxoVersionado == null)
+        {
+            return CreateErrorResponse(404, $"Nao foi possivel achar o fluxo versionado com id {fluxoVersionadoId}");
+        }
+
+        return await ExecutarFluxoVersionado(fluxoVersionado, null);
+    }
+
     private async Task<RespostaHttp<object>> Executar(long fluxoId, long? logFluxoPaiId)
     {
         FluxoVersionado fluxoVersionado = _repositorioConsulta
@@ -56,6 +69,11 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             return CreateErrorResponse(404, $"Nao foi possivel achar o fluxo com id {fluxoId}");
         }
 
+        return await ExecutarFluxoVersionado(fluxoVersionado, logFluxoPaiId);
+    }
+
+    private async Task<RespostaHttp<object>> ExecutarFluxoVersionado(FluxoVersionado fluxoVersionado, long? logFluxoPaiId)
+    {
         LogFluxo logFluxo = new LogFluxo
         {
             FluxoId = fluxoVersionado.FluxoId,
@@ -144,7 +162,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 finalizadoEm = resultadoExecucao.FinalizadoEm;
                 bool sucesso = IsSuccessResponse(respostaNo);
 
-                bool deveTentarNovamente = !sucesso && operacaoDto.Repetir && (tentativas) <= operacaoDto.MaximoRepeticao;
+                bool deveTentarNovamente = !sucesso && operacaoDto.Repetir && tentativas <= operacaoDto.MaximoRepeticao;
                 if (deveTentarNovamente)
                 {
                     int delay = CalcularAtraso(operacaoDto, tentativas);
@@ -205,7 +223,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             dadoAnterior = respostaNo.Resposta;
         }
 
-        return new RespostaHttp<object>()
+        return new RespostaHttp<object>
         {
             Status = 200,
             Resposta = dadoAnterior
@@ -240,7 +258,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             stopwatch.Stop();
 
             return new ResultadoExecucaoOperacao(
-                CreateErrorResponse(408, $"Timeout no nó {no.Id}"),
+                CreateErrorResponse(408, $"Timeout no no {no.Id}"),
                 ex,
                 iniciadoEm,
                 iniciadoEm.AddMilliseconds(stopwatch.ElapsedMilliseconds));
