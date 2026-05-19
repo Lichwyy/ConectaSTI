@@ -42,7 +42,8 @@ namespace ConectaSTI.Api.Extensoes
             services.AddTransient<IRepositorioConsulta, RepositorioConsulta>();
             services.AddTransient<IMigracao, Migracao>();
             services.AddScoped<IConverter, Conversor>();
-            services.AddTransient(typeof(ServicoConsulta<>));
+            services.AddTransient<ServicoConsulta<LogEntidade>>();
+            services.AddTransient<ServicoConsulta<LogPropriedade>>();
 
             services.Configure<ServicoRequestOptions>(configuration.GetSection("ServicoRequest"));
             services.AddTransient<IRequest, ServicoRequest>();
