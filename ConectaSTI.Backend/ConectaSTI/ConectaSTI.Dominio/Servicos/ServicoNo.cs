@@ -1,5 +1,6 @@
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.ObjetosValor;
+using FGB.Dominio.Interfaces.Seguranca;
 using FGB.IRepositorios;
 using FGB.Servicos;
 
@@ -8,7 +9,8 @@ namespace ConectaSTI.Dominio.Servicos;
 public class ServicoNo : ServicoCrud<No>
 {
     private IRepositorioConsulta _consulta;
-    public ServicoNo(IRepositorioSessao repositorio) : base(repositorio)
+
+    public ServicoNo(IRepositorioSessao repositorio, ICurrentUserContext currentUserContext) : base(repositorio, currentUserContext)
     {
         _consulta = Repositorio.GetRepositorioConsulta();
     }
@@ -63,7 +65,7 @@ public class ServicoNo : ServicoCrud<No>
             Mensagens.Add("ChaveValor é obrigatória para nós do tipo SalvarStorage.", true);
             return;
         }
-            
+
         No storageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Id != entidade.Id && s.Tipo == TipoNo.SalvarStorage)
             .FirstOrDefault();
         if (storageExistente != null)

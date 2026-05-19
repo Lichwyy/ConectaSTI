@@ -1,4 +1,6 @@
-﻿using ConectaSTI.Dominio.Servicos;
+using ConectaSTI.Dominio.Interfaces;
+using ConectaSTI.Dominio.Servicos;
+using ConectaSTI.Executor.Servicos;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ConectaSTI.Api.Extensoes
@@ -17,6 +19,17 @@ namespace ConectaSTI.Api.Extensoes
             services.AddTransient<ServicoFluxoVersionado>();
             services.AddTransient<ServicoLogFluxo>();
             services.AddTransient<ServicoLogOperacao>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddExecutoresConectaSti(this IServiceCollection services)
+        {
+            services.AddTransient<IRequestExecutor, RequestExecutor>();
+            services.AddTransient<IFunctionExecutor, FunctionExecutor>();
+            services.AddTransient<IStorageExecutor, StorageExecutor>();
+            services.AddTransient<IFluxoExecutor, FluxoVersionadoExecutor>();
+            services.AddTransient<IVersionarExecutor, VersionarExecutor>();
 
             return services;
         }

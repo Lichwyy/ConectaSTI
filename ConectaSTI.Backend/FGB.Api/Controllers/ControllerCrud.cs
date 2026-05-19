@@ -1,7 +1,8 @@
-﻿using FGB.Entidades;
+﻿using AutoMapper;
+using FGB.Entidades;
 using FGB.Servicos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
 
 namespace FGB.Api.Controllers
 {
@@ -16,6 +17,7 @@ namespace FGB.Api.Controllers
             _servico = servico;
         }
 
+        [Authorize(Policy = "admin")]
         [HttpPost]
         public virtual IActionResult Post([FromBody] T entidade)
         {
@@ -30,6 +32,7 @@ namespace FGB.Api.Controllers
 
 
         [HttpPut("{id:long}")]
+        [Authorize(Policy = "admin")]
         public virtual IActionResult Put(long id, [FromBody] T entidade)
         {
             if (!ModelState.IsValid)
@@ -45,6 +48,7 @@ namespace FGB.Api.Controllers
         }
 
         [HttpDelete("{id:long}")]
+        [Authorize(Policy = "admin")]
         public virtual IActionResult Delete(long id)
         {
             var removido = _servico.Exclui(id);

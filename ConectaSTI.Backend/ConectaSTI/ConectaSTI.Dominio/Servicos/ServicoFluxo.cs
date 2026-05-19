@@ -1,5 +1,6 @@
 using ConectaSTI.Dominio.Entidades;
 using ConectaSTI.Dominio.ObjetosValor;
+using FGB.Dominio.Interfaces.Seguranca;
 using FGB.Entidades;
 using FGB.IRepositorios;
 using FGB.Servicos;
@@ -10,11 +11,11 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
 {
     private ServicoOperacao _servicoOperacao;
     private IRepositorioConsulta _consulta;
-    
-    public ServicoFluxo(IRepositorioSessao repositorio) : base(repositorio)
+
+    public ServicoFluxo(IRepositorioSessao repositorio, ICurrentUserContext currentUserContext) : base(repositorio, currentUserContext)
     {
         _consulta = Repositorio.GetRepositorioConsulta();
-        _servicoOperacao = new ServicoOperacao(repositorio);
+        _servicoOperacao = new ServicoOperacao(repositorio, currentUserContext);
     }
 
     public override bool Validacoes(Fluxo entidade)
@@ -56,7 +57,7 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
     private void ValidarOrdemSequencial(Fluxo entidade)
     {
         var ordens = entidade.Operacoes.Select(o => o.Ordem).OrderBy(o => o).ToList();
-        
+
         // Verifica se há ordens duplicadas
         if (ordens.Distinct().Count() != ordens.Count)
             Mensagens.Add("Existem operações com a mesma ordem no fluxo.", true);

@@ -1,9 +1,9 @@
 using ConectaSTI.Api.Extensoes;
+using FGB.Api.Controllers;
 using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
+using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
-using ConectaSTI.Dominio.Interfaces;
-using ConectaSTI.Executor.Servicos;
 
 namespace ConectaSTI.Api;
 
@@ -16,11 +16,13 @@ public class Program
         // Add services to the container.
 
         builder.Services.AddControllers(opt =>
-                {
-                    opt.InputFormatters.Insert(0, new PlainTextInputFormatter());
-                })
+            {
+                opt.InputFormatters.Insert(0, new PlainTextInputFormatter());
+            })
+            .AddApplicationPart(typeof(LogEntidadeController).Assembly)
             .AddOData(opt =>
-            opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000)).AddJsonOptions(opt =>
+                opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000))
+            .AddJsonOptions(opt =>
                 {
                     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     opt.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
@@ -30,13 +32,9 @@ public class Program
         builder.Services.AddOpenApi();
 
         builder.Services.AddFgb(builder.Configuration);
+        builder.Services.AddAutenticacao(builder.Configuration);
         builder.Services.AddServicosConectaSti();
-
-        builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
-        builder.Services.AddTransient<IFunctionExecutor, FunctionExecutor>();
-        builder.Services.AddTransient<IStorageExecutor, StorageExecutor>();
-        builder.Services.AddTransient<IFluxoExecutor, FluxoVersionadoExecutor>();
-        builder.Services.AddTransient<IVersionarExecutor, VersionarExecutor>();
+        builder.Services.AddExecutoresConectaSti();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {
@@ -47,9 +45,6 @@ public class Program
                       .AllowAnyHeader();
             });
         });
-
-        builder.Services.AddSwaggerGen();
-        
         var app = builder.Build();
 
         if (app.Configuration.GetValue<bool>("MigrateDb"))
@@ -64,12 +59,12 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            app.MapScalarApiReference(options =>
             {
-                c.SwaggerEndpoint($"/swagger/v1/swagger.json", $"API 1");
-                c.RoutePrefix = string.Empty;
+                options.WithTitle("ConectaSTI API");
             });
+            app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+                .ExcludeFromDescription();
         }
 
         if (!app.Environment.IsDevelopment())
@@ -79,6 +74,7 @@ public class Program
 
         app.UseCors("AllowAll");
 
+        app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();

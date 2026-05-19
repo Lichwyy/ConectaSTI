@@ -1,14 +1,16 @@
 using ConectaSTI.Dominio.Entidades;
+using ConectaSTI.Dominio.ObjetosValor;
+using FGB.Dominio.Interfaces.Seguranca;
 using FGB.IRepositorios;
 using FGB.Servicos;
-using ConectaSTI.Dominio.ObjetosValor;
 
 namespace ConectaSTI.Dominio.Servicos;
 
 public class ServicoOperacao : ServicoCrud<Operacao>
 {
     private IRepositorioConsulta _consulta;
-    public ServicoOperacao(IRepositorioSessao repositorio) : base(repositorio)
+
+    public ServicoOperacao(IRepositorioSessao repositorio, ICurrentUserContext currentUserContext) : base(repositorio, currentUserContext)
     {
         _consulta = Repositorio.GetRepositorioConsulta();
     }

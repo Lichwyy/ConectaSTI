@@ -10,7 +10,7 @@ namespace ConectaSTI.Dominio.Entidades.Logs
     public class LogOperacao  : EntidadeBase
     {
         public long LogFluxoId { get; set; }
-        public long NoId { get; set; }
+        public long? NoId { get; set; }
         public long? FuncaoId { get; set; }
         public long? EndPointId { get; set; }
         

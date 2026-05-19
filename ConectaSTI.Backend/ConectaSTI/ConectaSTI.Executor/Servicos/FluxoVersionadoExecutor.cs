@@ -38,8 +38,13 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         _servicoLogFluxo = servicoLogFluxo;
         _servicoLogOperacao = servicoLogOperacao;
     }
-    
+
     public async Task<RespostaHttp<object>> Executar(long fluxoId)
+    {
+        return await Executar(fluxoId, null);
+    }
+
+    private async Task<RespostaHttp<object>> Executar(long fluxoId, long? logFluxoPaiId)
     {
         FluxoVersionado fluxoVersionado = _repositorioConsulta
             .Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId)
@@ -51,16 +56,14 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             return CreateErrorResponse(404, $"Nao foi possivel achar o fluxo com id {fluxoId}");
         }
 
-        FluxoDTO fluxoDto = DeserializeFluxoDTO(fluxoVersionado);
-        if (fluxoDto == null || fluxoDto.Operacoes == null || !fluxoDto.Operacoes.Any())
-        {
-            return CreateErrorResponse(400, "Payload do fluxo versionado invalido.");
-        }
-
         LogFluxo logFluxo = new LogFluxo
         {
             FluxoId = fluxoVersionado.FluxoId,
-            Versao = fluxoVersionado.Versao
+            Versao = fluxoVersionado.Versao,
+            FluxoVersionadoId = fluxoVersionado.Id,
+            Nome = fluxoVersionado.Nome,
+            LogFluxoPaiId = logFluxoPaiId,
+            IniciadoEm = DateTime.Now
         };
 
         if (!_servicoLogFluxo.Inclui(logFluxo))
@@ -68,10 +71,46 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             return CreateErrorResponse(500, GetMensagensErro(_servicoLogFluxo.Mensagens, "Erro ao salvar log de fluxo."));
         }
 
-        return await ExecuteOperation(fluxoDto, logFluxo.Id);
+        RespostaHttp<object> respostaFinal;
+
+        try
+        {
+            FluxoDTO fluxoDto = DeserializeFluxoDTO(fluxoVersionado);
+            if (fluxoDto == null || fluxoDto.Operacoes == null || !fluxoDto.Operacoes.Any())
+            {
+                respostaFinal = CreateErrorResponse(400, "Payload do fluxo versionado invalido.");
+            }
+            else
+            {
+                logFluxo.QuantidadeOperacoes = fluxoDto.Operacoes.Count;
+                respostaFinal = await ExecuteOperation(fluxoDto, logFluxo);
+            }
+        }
+        catch (JsonException)
+        {
+            respostaFinal = CreateErrorResponse(400, "Payload do fluxo versionado invalido.");
+        }
+        catch (Exception ex)
+        {
+            respostaFinal = CreateErrorResponse(500, ex.Message);
+        }
+
+        logFluxo.FinalizadoEm = DateTime.Now;
+        logFluxo.DuracaoMs = logFluxo.IniciadoEm.HasValue
+            ? (int)Math.Max((logFluxo.FinalizadoEm.Value - logFluxo.IniciadoEm.Value).TotalMilliseconds, 0)
+            : 0;
+        logFluxo.StatusHttp = respostaFinal?.Status ?? 0;
+        logFluxo.Sucesso = IsSuccessResponse(respostaFinal);
+
+        if (_servicoLogFluxo.Merge(logFluxo) == null)
+        {
+            return CreateErrorResponse(500, GetMensagensErro(_servicoLogFluxo.Mensagens, "Erro ao atualizar log de fluxo."));
+        }
+
+        return respostaFinal;
     }
 
-    private async Task<RespostaHttp<object>> ExecuteOperation(FluxoDTO fluxoDto, long logFluxoId)
+    private async Task<RespostaHttp<object>> ExecuteOperation(FluxoDTO fluxoDto, LogFluxo logFluxo)
     {
         var operacoesOrdenadas = fluxoDto.Operacoes.OrderBy(x => x.Ordem).ToList();
         var noIds = operacoesOrdenadas.Select(x => x.NoId).Distinct().ToList();
@@ -80,7 +119,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             .ToDictionary(x => x.Id, x => x);
 
         object dadoAnterior = null;
-        
+
         foreach (OperacaoDTO operacaoDto in operacoesOrdenadas)
         {
             if (!nosPorId.TryGetValue(operacaoDto.NoId, out No no))
@@ -98,7 +137,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             do
             {
                 tentativas++;
-                ResultadoExecucaoOperacao resultadoExecucao = await ExecuteNoWithTimeout(no, dadoAnterior, operacaoDto.UsarDadosAnterior, operacaoDto.Timeout);
+                ResultadoExecucaoOperacao resultadoExecucao = await ExecuteNoWithTimeout(no, dadoAnterior, operacaoDto.UsarDadosAnterior, operacaoDto.Timeout, logFluxo.Id);
                 respostaNo = resultadoExecucao.Resposta;
                 ultimaException = resultadoExecucao.Exception;
                 iniciadoEm = resultadoExecucao.IniciadoEm;
@@ -121,8 +160,19 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 }
             } while (true);
 
+            bool sucessoOperacao = IsSuccessResponse(respostaNo);
+            logFluxo.OperacoesExecutadas++;
+            if (sucessoOperacao)
+            {
+                logFluxo.OperacoesComSucesso++;
+            }
+            else
+            {
+                logFluxo.OperacoesComFalha++;
+            }
+
             RespostaHttp<object> respostaLog = RegistrarLogOperacao(
-                logFluxoId,
+                logFluxo.Id,
                 operacaoDto,
                 no,
                 dadoAnterior,
@@ -137,7 +187,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 return respostaLog;
             }
 
-            if (!IsSuccessResponse(respostaNo))
+            if (!sucessoOperacao)
             {
                 switch (operacaoDto.Erro)
                 {
@@ -157,12 +207,12 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
 
         return new RespostaHttp<object>()
         {
-            Status =  200,
+            Status = 200,
             Resposta = dadoAnterior
         };
     }
 
-    private async Task<ResultadoExecucaoOperacao> ExecuteNoWithTimeout(No no, object dadoAnterior, bool usarDadoAnterior, int timeout)
+    private async Task<ResultadoExecucaoOperacao> ExecuteNoWithTimeout(No no, object dadoAnterior, bool usarDadoAnterior, int timeout, long logFluxoId)
     {
         DateTime iniciadoEm = DateTime.Now;
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -175,7 +225,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                     : new CancellationTokenSource();
 
             RespostaHttp<object> resposta =
-                await ExecuteNo(no, dadoAnterior, usarDadoAnterior, timeoutCts.Token);
+                await ExecuteNo(no, dadoAnterior, usarDadoAnterior, timeoutCts.Token, logFluxoId);
 
             stopwatch.Stop();
 
@@ -207,7 +257,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         }
     }
 
-    private async Task<RespostaHttp<object>> ExecuteNo(No no, object dadoAnterior, bool usarDadoAnterior, CancellationToken cancellationToken)
+    private async Task<RespostaHttp<object>> ExecuteNo(No no, object dadoAnterior, bool usarDadoAnterior, CancellationToken cancellationToken, long logFluxoId)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -268,12 +318,12 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 resposta = _storageExecutor.Pegar(no.ChaveValor, cancellationToken);
                 break;
             case TipoNo.Fluxo:
-                resposta = await Executar(no.FluxoId.Value);
+                resposta = await Executar(no.FluxoId.Value, logFluxoId);
                 break;
             default:
                 return CreateErrorResponse(400, $"Tipo de no invalido: {no.Tipo}");
         }
-        
+
         return resposta;
     }
 
