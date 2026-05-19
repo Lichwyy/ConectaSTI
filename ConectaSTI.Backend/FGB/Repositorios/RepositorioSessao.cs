@@ -92,6 +92,11 @@ namespace FGB.Dominio.Repositorios
             return new Repositorio(_session);
         }
 
+        public T RetornaComLock<T>(long id) where T : EntidadeBase
+        {
+            return _session.Get<T>(id, LockMode.Upgrade);
+        }
+
         public IRepositorioConsulta GetRepositorioConsulta()
         {
             return new RepositorioConsulta(_session);

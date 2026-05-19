@@ -12,8 +12,9 @@ public class No : EntidadeBase
     public string Headers { get; set; }
     public long? FuncaoId { get; set; }
     public long? EndPointId { get; set; }
+    public long? FluxoId { get; set; }
     public string ChaveValor { get; set; }
-    public int TempoMinutoValidade { get; set; }
+    public int TempoMinutoValidade { get; set; } = 0;
 
     public void ValidarVinculos()
     {
@@ -43,6 +44,12 @@ public class No : EntidadeBase
                 throw new InvalidOperationException("No do tipo PegarStorage deve ter ChaveValor definida.");
             if (FuncaoId.HasValue || EndPointId.HasValue)
                 throw new InvalidOperationException("No do tipo PegarStorage nao deve ter Funcao ou EndPoint.");
+        }
+
+        if(Tipo == TipoNo.Fluxo)
+        {
+            if (!FluxoId.HasValue || FuncaoId.HasValue || EndPointId.HasValue || !string.IsNullOrWhiteSpace(ChaveValor))
+                throw new InvalidOperationException("No do tipo Fluxo deve ter FluxoId e nao deve ter Funcao, EndPoint ou Chave.");
         }
     }
 

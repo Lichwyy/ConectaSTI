@@ -20,7 +20,7 @@ public class ServicoNo : ServicoCrud<No>
         Mensagens.Clear();
         if (entidade == null)
         {
-            Mensagens.Add("NÃ³ Ã© obrigatÃ³rio.", true);
+            Mensagens.Add("Nó é obrigatório.", true);
             return false;
         }
 
@@ -62,14 +62,14 @@ public class ServicoNo : ServicoCrud<No>
         //Validando Chave Valor
         if (string.IsNullOrEmpty(entidade.ChaveValor))
         {
-            Mensagens.Add("ChaveValor Ã© obrigatÃ³ria para nÃ³s do tipo SalvarStorage.", true);
+            Mensagens.Add("ChaveValor é obrigatória para nós do tipo SalvarStorage.", true);
             return;
         }
-            
+
         No storageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Id != entidade.Id && s.Tipo == TipoNo.SalvarStorage)
             .FirstOrDefault();
         if (storageExistente != null)
-            Mensagens.Add("JÃ¡ existe um nÃ³ com a mesma ChaveValor.", true);
+            Mensagens.Add("Já existe um nó com a mesma ChaveValor.", true);
 
         // Validando TempoMinutoValidade - deve ser um valor positivo
         if (entidade.TempoMinutoValidade <= 0)
@@ -80,38 +80,38 @@ public class ServicoNo : ServicoCrud<No>
     {
         if (string.IsNullOrEmpty(entidade.ChaveValor))
         {
-            Mensagens.Add("ChaveValor Ã© obrigatÃ³ria para nÃ³s do tipo PegarStorage.", true);
+            Mensagens.Add("ChaveValor é obrigatória para nós do tipo PegarStorage.", true);
             return;
         }
 
         No salvarStorageExistente = Consulta(s => s.ChaveValor == entidade.ChaveValor && s.Tipo == TipoNo.SalvarStorage).FirstOrDefault();
         if (salvarStorageExistente == null)
-            Mensagens.Add($"NÃ£o existe um nÃ³ SalvarStorage com a ChaveValor '{entidade.ChaveValor}'. PegarStorage sÃ³ pode referenciar chaves previamente salvas.", true);
+            Mensagens.Add($"Não existe um nó SalvarStorage com a ChaveValor '{entidade.ChaveValor}'. PegarStorage só pode referenciar chaves previamente salvas.", true);
     }
 
     private void ValidarRequisicao(No entidade)
     {
         if (!entidade.EndPointId.HasValue)
         {
-            Mensagens.Add("EndPointId Ã© obrigatÃ³rio para nÃ³s do tipo Requisicao.", true);
+            Mensagens.Add("EndPointId é obrigatório para nós do tipo Requisicao.", true);
             return;
         }
 
         var endpoint = _consulta.Retorna<EndPoint>(entidade.EndPointId.Value);
         if (endpoint == null)
-            Mensagens.Add("EndPoint nÃ£o existe.", true);
+            Mensagens.Add("EndPoint não existe.", true);
     }
 
     private void ValidarFuncao(No entidade)
     {
         if (!entidade.FuncaoId.HasValue)
         {
-            Mensagens.Add("FuncaoId Ã© obrigatÃ³ria para nÃ³s do tipo FuncaoJS.", true);
+            Mensagens.Add("FuncaoId é obrigatória para nós do tipo FuncaoJS.", true);
             return;
         }
 
         var funcao = _consulta.Retorna<Funcao>(entidade.FuncaoId.Value);
         if (funcao == null)
-            Mensagens.Add("FunÃ§Ã£o nÃ£o existe.", true);
+            Mensagens.Add("Função não existe.", true);
     }
 }

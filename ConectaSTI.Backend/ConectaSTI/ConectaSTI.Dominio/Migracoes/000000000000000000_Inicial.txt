@@ -1,0 +1,152 @@
+-- Migração inicial consolidada (banco do zero)
+
+CREATE TABLE IF NOT EXISTS integracao (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	url VARCHAR(500) NOT NULL,
+	token VARCHAR(500),
+	nome VARCHAR(255) NOT NULL,
+	descricao TEXT
+);
+
+CREATE TABLE IF NOT EXISTS funcao (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	nome VARCHAR(255) NOT NULL,
+	corpo_da_funcao TEXT NOT NULL,
+	parametro TEXT
+);
+
+CREATE TABLE IF NOT EXISTS fluxo (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	nome VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS storage (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	chave VARCHAR(255) NOT NULL,
+	valor TEXT,
+	validade TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS end_point (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	recurso VARCHAR(255) NOT NULL,
+	integracao_id BIGINT NOT NULL,
+	verbo INT NOT NULL,
+	descricao TEXT,
+	token VARCHAR(500),
+	CONSTRAINT fk_end_point_integracao FOREIGN KEY (integracao_id) REFERENCES integracao (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS no (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	tipo INT NOT NULL,
+	body TEXT,
+	headers TEXT,
+	funcao_id BIGINT NULL,
+	end_point_id BIGINT NULL,
+	fluxo_id BIGINT NULL,
+	chave_valor VARCHAR(255),
+	tempo_minuto_validade INT NOT NULL DEFAULT 0,
+	CONSTRAINT fk_no_funcao FOREIGN KEY (funcao_id) REFERENCES funcao (id) ON DELETE SET NULL,
+	CONSTRAINT fk_no_end_point FOREIGN KEY (end_point_id) REFERENCES end_point (id) ON DELETE SET NULL,
+	CONSTRAINT fk_no_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS operacao (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	ordem INT NOT NULL,
+	no_id BIGINT NOT NULL,
+	fluxo_id BIGINT NOT NULL,
+	repetir BOOLEAN NOT NULL DEFAULT FALSE,
+	usar_dados_anterior BOOLEAN NOT NULL DEFAULT FALSE,
+	erro INT NOT NULL,
+	maximo_repeticao INT NOT NULL DEFAULT 0,
+	max_retries INT NOT NULL DEFAULT 0,
+	backoff_type INT NOT NULL DEFAULT 1,
+	backoff_delay INT NOT NULL DEFAULT 0,
+	backoff_multiplier DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+	timeout INT NOT NULL DEFAULT 30000,
+	CONSTRAINT fk_operacao_no FOREIGN KEY (no_id) REFERENCES no (id) ON DELETE CASCADE,
+	CONSTRAINT fk_operacao_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS fluxo_versionado (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	fluxo_id BIGINT NOT NULL,
+	nome VARCHAR(255) NOT NULL,
+	versao INT NOT NULL,
+	payload TEXT NOT NULL,
+	CONSTRAINT fk_fluxo_versionado_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_fluxo_versionado_fluxo_id_versao
+	ON fluxo_versionado (fluxo_id, versao);
+
+CREATE TABLE IF NOT EXISTS log_fluxo (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	fluxo_id BIGINT NOT NULL,
+	versao INT NOT NULL,
+	CONSTRAINT fk_log_fluxo_fluxo FOREIGN KEY (fluxo_id) REFERENCES fluxo (id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS log_operacao (
+	id BIGSERIAL PRIMARY KEY,
+	criadoem TIMESTAMP NULL,
+	ultimaalteracao TIMESTAMP NULL,
+	log_fluxo_id BIGINT NOT NULL,
+	nome VARCHAR(255),
+	url VARCHAR(500),
+	recurso VARCHAR(255),
+	verbo INT NOT NULL,
+	token VARCHAR(500),
+	tipo INT NOT NULL,
+	body TEXT,
+	headers TEXT,
+	chave_valor VARCHAR(255),
+	tempo_minuto_validade INT NOT NULL DEFAULT 0,
+	ordem INT NOT NULL,
+	repetir BOOLEAN NOT NULL DEFAULT FALSE,
+	usar_dados_anterior BOOLEAN NOT NULL DEFAULT FALSE,
+	erro INT NOT NULL,
+	maximo_repeticao INT NOT NULL DEFAULT 0,
+	backoff_type INT NOT NULL DEFAULT 1,
+	backoff_delay INT NOT NULL DEFAULT 0,
+	backoff_multiplier DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+	timeout INT NOT NULL DEFAULT 30000,
+	no_id BIGINT NOT NULL DEFAULT 0,
+	funcao_id BIGINT NULL,
+	end_point_id BIGINT NULL,
+	iniciado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+	finalizado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+	duracao_ms INT NOT NULL DEFAULT 0,
+	tentativas_realizadas INT NOT NULL DEFAULT 0,
+	atraso_total_ms INT NOT NULL DEFAULT 0,
+	status_http INT NOT NULL DEFAULT 0,
+	sucesso BOOLEAN NOT NULL DEFAULT FALSE,
+	dado_anterior TEXT NULL,
+	resposta TEXT NULL,
+	resposta_body TEXT NULL,
+	mensagens_retorno TEXT NULL,
+	mensagem_erro TEXT NULL,
+	exception_tipo VARCHAR(255) NULL,
+	stack_trace TEXT NULL,
+	CONSTRAINT fk_log_operacao_log_fluxo FOREIGN KEY (log_fluxo_id) REFERENCES log_fluxo (id) ON DELETE CASCADE
+);

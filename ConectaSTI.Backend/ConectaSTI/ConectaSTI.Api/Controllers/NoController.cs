@@ -1,7 +1,10 @@
 using AutoMapper;
 using ConectaSTI.Dominio.Entidades;
+using ConectaSTI.Dominio.ObjetosValor;
 using ConectaSTI.Dominio.Servicos;
 using FGB.Api.Controllers;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace ConectaSTI.Api.Controllers;
 

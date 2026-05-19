@@ -9,6 +9,7 @@ namespace ConectaSTI.Dominio.ObjetosValor
         Requisicao = 1,
         FuncaoJS = 2, // talvez mais coisas no futuro, mas por enquanto só tem essas
         SalvarStorage = 3,
-        PegarStorage = 4
+        PegarStorage = 4,
+        Fluxo = 5
     }
 }

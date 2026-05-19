@@ -20,7 +20,7 @@ public class ServicoOperacao : ServicoCrud<Operacao>
         Mensagens.Clear();
         if (entidade == null)
         {
-            Mensagens.Add("OperaÃ§Ã£o Ã© obrigatÃ³ria.", true);
+            Mensagens.Add("Operação é obrigatória.", true);
             return false;
         }
 
@@ -45,7 +45,7 @@ public class ServicoOperacao : ServicoCrud<Operacao>
         No no = _consulta.Retorna<No>(entidade.NoId);
         if (no == null)
         {
-            Mensagens.Add("No nÃ£o existe.", true);
+            Mensagens.Add("No não existe.", true);
             return;
         }
 
@@ -54,18 +54,18 @@ public class ServicoOperacao : ServicoCrud<Operacao>
 
     private void ValidarTipoNoParaOrdem(Operacao entidade, No no)
     {
-        // OperaÃ§Ã£o de ordem 1 nÃ£o pode ser do tipo PegarStorage
-        // pois o storage ainda nÃ£o foi populado neste ponto do fluxo
+        // Operação de ordem 1 não pode ser do tipo PegarStorage
+        // pois o storage ainda não foi populado neste ponto do fluxo
         if (entidade.Ordem == 1 && !no.PodeSerPrimeiraOperacao())
         {
-            Mensagens.Add("A primeira operaÃ§Ã£o (ordem 1) nÃ£o pode ser do tipo PegarStorage, pois o storage ainda nÃ£o possui dados neste ponto do fluxo.", true);
+            Mensagens.Add("A primeira operação (ordem 1) não pode ser do tipo PegarStorage, pois o storage ainda não possui dados neste ponto do fluxo.", true);
         }
     }
 
     private void ValidarOrdemUnica(Operacao entidade)
     {
         if (Consulta(x => x.FluxoId == entidade.FluxoId && x.Ordem == entidade.Ordem && x.Id != entidade.Id).Any())
-            Mensagens.Add("JÃ¡ existe uma operaÃ§Ã£o com a mesma ordem para este fluxo.", true);
+            Mensagens.Add("Já existe uma operação com a mesma ordem para este fluxo.", true);
     }
 
     private void ValidarPoliticaRepeticao(Operacao entidade)

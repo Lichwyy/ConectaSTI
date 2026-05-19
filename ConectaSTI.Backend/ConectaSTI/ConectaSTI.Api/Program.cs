@@ -4,8 +4,6 @@ using FGB.IRepositorios;
 using Microsoft.AspNetCore.OData;
 using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
-using ConectaSTI.Dominio.Interfaces;
-using ConectaSTI.Executor.Servicos;
 
 namespace ConectaSTI.Api;
 
@@ -17,7 +15,10 @@ public class Program
 
         // Add services to the container.
 
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(opt =>
+            {
+                opt.InputFormatters.Insert(0, new PlainTextInputFormatter());
+            })
             .AddApplicationPart(typeof(LogEntidadeController).Assembly)
             .AddOData(opt =>
                 opt.Select().Filter().OrderBy().Count().Expand().SetMaxTop(1000))
@@ -33,10 +34,7 @@ public class Program
         builder.Services.AddFgb(builder.Configuration);
         builder.Services.AddAutenticacao(builder.Configuration);
         builder.Services.AddServicosConectaSti();
-
-        builder.Services.AddTransient<IRequestExecutor, RequestExecutor>();
-        builder.Services.AddTransient<IFunctionExecutor, FunctionExecutor>();
-        builder.Services.AddTransient<IStorageExecutor, StorageExecutor>();
+        builder.Services.AddExecutoresConectaSti();
 
         builder.Services.AddCors(options =>  //depois configuramos direito, enquanto estiver em desenvolvimento, deixamos aberto
         {
