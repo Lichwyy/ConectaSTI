@@ -1,12 +1,10 @@
-﻿using FGB.Dominio.ObjetoValor;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using FGB.Dominio.ObjetoValor;
 
 namespace ConectaSTI.Dominio.Interfaces
 {
     public interface IFluxoExecutor
     {
-        public Task<RespostaHttp<object>> Executar(long fluxoId);
+        Task<RespostaHttp<object>> Executar(long fluxoId);
+        Task<RespostaHttp<object>> ExecutarFluxoVersionado(long fluxoVersionadoId);
     }
 }

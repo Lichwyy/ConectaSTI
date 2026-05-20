@@ -28,6 +28,8 @@ public class VersionarExecutor : IVersionarExecutor
             try
             {
                 Fluxo fluxo = _repositorioSessao.RetornaComLock<Fluxo>(fluxoId);
+                if (fluxo == null)
+                    return null;
 
                 int ultimaVersao = _consulta.Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId)
                     .Select(x => (int?)x.Versao)

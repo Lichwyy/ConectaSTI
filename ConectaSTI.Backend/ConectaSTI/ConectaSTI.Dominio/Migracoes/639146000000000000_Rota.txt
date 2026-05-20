@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS rota (
+    id BIGSERIAL PRIMARY KEY,
+    criadoem TIMESTAMP NULL,
+    ultimaalteracao TIMESTAMP NULL,
+    rate_limit BOOLEAN NOT NULL DEFAULT FALSE,
+    rate_limit_requests INT NOT NULL DEFAULT 0,
+    rate_limit_interval INT NOT NULL DEFAULT 60,
+    idempotencia BOOLEAN NOT NULL DEFAULT FALSE,
+    json_schema_resp TEXT NULL,
+    json_schema_req TEXT NULL,
+    pipeline_versao_id BIGINT NOT NULL,
+    pipeline_versao VARCHAR(255) NULL,
+    caminho VARCHAR(500) NOT NULL,
+    metodo INT NOT NULL,
+    CONSTRAINT fk_rota_fluxo_versionado FOREIGN KEY (pipeline_versao_id) REFERENCES fluxo_versionado (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_rota_metodo_caminho
+    ON rota (metodo, caminho);
+
+CREATE INDEX IF NOT EXISTS idx_rota_pipeline_versao_id
+    ON rota (pipeline_versao_id);

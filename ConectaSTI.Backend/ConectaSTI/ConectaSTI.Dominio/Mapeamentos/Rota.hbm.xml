@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping xmlns="urn:nhibernate-mapping-2.2" assembly="ConectaSTI.Dominio" namespace="ConectaSTI.Dominio.Entidades">
+  <class name="Rota" table="rota" lazy="false" batch-size="100">
+    <id name="Id" type="long" column="id">
+      <generator class="sequence">
+        <param name="sequence">rota_id_seq</param>
+      </generator>
+    </id>
+
+    <property name="CriadoEm" column="criadoem" type="DateTime" not-null="false" />
+    <property name="UltimaAlteracao" column="ultimaalteracao" type="DateTime" not-null="false" />
+
+    <property name="RateLimit" column="rate_limit" type="bool" not-null="true" />
+    <property name="RateLimitRequests" column="rate_limit_requests" type="int" not-null="true" />
+    <property name="RateLimitInterval" column="rate_limit_interval" type="int" not-null="true" />
+    <property name="Idempotencia" column="idempotencia" type="bool" not-null="true" />
+    <property name="JsonSchemaResp" column="json_schema_resp" type="StringClob" not-null="false" />
+    <property name="JsonSchemaReq" column="json_schema_req" type="StringClob" not-null="false" />
+    <property name="PipelineVersaoId" column="pipeline_versao_id" type="long" not-null="true" />
+    <property name="PipelineVersao" column="pipeline_versao" type="string" not-null="false" />
+    <property name="Caminho" column="caminho" type="string" not-null="true" />
+    <property name="Metodo" column="metodo" not-null="true" />
+  </class>
+</hibernate-mapping>

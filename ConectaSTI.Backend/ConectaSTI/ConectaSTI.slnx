@@ -1,7 +1,12 @@
 <Solution>
-  <Project Path="../FGB.Api/FGB.Api.csproj" />
-  <Project Path="../FGB/FGB.Dominio.csproj" />
-  <Project Path="ConectaSTI.Api/ConectaSTI.Api.csproj" />
+  <Folder Name="/Apis/">
+    <Project Path="ConectaSTI.Api/ConectaSTI.Api.csproj" />
+    <Project Path="ConectaSTI.Rotas/ConectaSTI.Rotas.csproj" Id="720cf142-3218-440f-a21e-5da632b9d62f" />
+  </Folder>
+  <Folder Name="/Genericos/">
+    <Project Path="../FGB.Api/FGB.Api.csproj" />
+    <Project Path="../FGB/FGB.Dominio.csproj" />
+  </Folder>
   <Project Path="ConectaSTI.Dominio/ConectaSTI.Dominio.csproj" />
   <Project Path="ConectaSTI.Executor/ConectaSTI.Executor.csproj" Id="49b3e130-7b6a-4530-bea7-0c10aadbf23b" />
 </Solution>
