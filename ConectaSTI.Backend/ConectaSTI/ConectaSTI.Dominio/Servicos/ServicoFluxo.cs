@@ -4,6 +4,7 @@ using FGB.Dominio.Interfaces.Seguranca;
 using FGB.Entidades;
 using FGB.IRepositorios;
 using FGB.Servicos;
+using ConectaSTI.Dominio.Interfaces;
 
 namespace ConectaSTI.Dominio.Servicos;
 
@@ -11,11 +12,13 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
 {
     private ServicoOperacao _servicoOperacao;
     private IRepositorioConsulta _consulta;
+    private IVersionarExecutor _versionar;
 
-    public ServicoFluxo(IRepositorioSessao repositorio, ICurrentUserContext currentUserContext) : base(repositorio, currentUserContext)
+    public ServicoFluxo(IRepositorioSessao repositorio, ICurrentUserContext currentUserContext, IVersionarExecutor versionarExecutor) : base(repositorio, currentUserContext)
     {
         _consulta = Repositorio.GetRepositorioConsulta();
         _servicoOperacao = new ServicoOperacao(repositorio, currentUserContext);
+        _versionar = versionarExecutor;
     }
 
     public override bool Validacoes(Fluxo entidade)
@@ -112,5 +115,21 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
                 }
             }
         }
+    }
+
+    public override bool Inclui(params Fluxo[] entidades)
+    {
+        foreach (var fluxo in entidades)
+        {
+            if (base.Inclui(fluxo))
+            {
+                _versionar.Execute(fluxo.Id);
+            }
+            if (Mensagens.HasErro())
+            {
+                return false;
+            }
+        }
+        return !Mensagens.HasErro();
     }
 }

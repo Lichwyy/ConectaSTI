@@ -17,7 +17,7 @@ namespace FGB.Api.Controllers
             _servico = servico;
         }
 
-        [Authorize(Policy = "admin")]
+        //[Authorize(Policy = "admin")]
         [HttpPost]
         public virtual IActionResult Post([FromBody] T entidade)
         {
@@ -32,7 +32,7 @@ namespace FGB.Api.Controllers
 
 
         [HttpPut("{id:long}")]
-        [Authorize(Policy = "admin")]
+        //[Authorize(Policy = "admin")]
         public virtual IActionResult Put(long id, [FromBody] T entidade)
         {
             if (!ModelState.IsValid)
