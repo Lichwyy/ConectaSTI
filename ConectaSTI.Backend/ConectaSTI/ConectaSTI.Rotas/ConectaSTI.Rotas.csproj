@@ -15,7 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\FGB.Api\FGB.Api.csproj" />
     <ProjectReference Include="..\ConectaSTI.Dominio\ConectaSTI.Dominio.csproj" />
   </ItemGroup>
 
