@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
 import Sidebar from "@/components/Sidebar";
+import AuthGuard from "@/components/AuthGuard";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -30,8 +31,10 @@ export default function RootLayout({
           defaultTheme="light"
           disableTransitionOnChange
         >
-          <Sidebar />
-          {children}
+          <AuthGuard>
+            <Sidebar />
+            {children}
+          </AuthGuard>
         </ThemeProvider>
       </body>
     </html>
