@@ -8,7 +8,7 @@ namespace ConectaSTI.Dominio.DTOs
     public class RotaDTO
     {
         public Rota Rota { get; set; }
-        public Dictionary<string, string> Headers { get; set; } = new();
+        public Dictionary<string, string> RouteParams { get; set; } = new();
         public string Body { get; set; }
         public Dictionary<string, string> QueryParams { get; set; } = new();
     }

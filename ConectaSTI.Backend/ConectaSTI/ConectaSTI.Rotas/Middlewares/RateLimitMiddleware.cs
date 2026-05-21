@@ -1,18 +1,18 @@
 using ConectaSTI.Dominio.DTOs;
-using System.Collections.Concurrent;
+using ConectaSTI.Dominio.Interfaces;
 using System.Threading.RateLimiting;
 
 namespace ConectaSTI.Rotas.Middlewares
 {
     public class RateLimitMiddleware : IMiddleware
     {
-        private static readonly ConcurrentDictionary<string, FixedWindowRateLimiter> _limiters = new();
-
         private readonly RotaDTO _rotaDTO;
+        private readonly IRateLimiterCache _rateLimiterCache;
 
-        public RateLimitMiddleware(RotaDTO rotaDTO)
+        public RateLimitMiddleware(RotaDTO rotaDTO, IRateLimiterCache rateLimiterCache)
         {
             _rotaDTO = rotaDTO;
+            _rateLimiterCache = rateLimiterCache;
         }
 
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
@@ -20,10 +20,6 @@ namespace ConectaSTI.Rotas.Middlewares
             if (_rotaDTO.Rota?.RateLimit == true)
             {
                 var userKey = context.Connection.RemoteIpAddress?.ToString();
-                if (string.IsNullOrWhiteSpace(userKey))
-                {
-                    userKey = context.Request.Headers["X-Forwarded-For"].ToString();
-                }
 
                 if (string.IsNullOrWhiteSpace(userKey))
                 {
@@ -38,16 +34,10 @@ namespace ConectaSTI.Rotas.Middlewares
 
                 var intervaloSegundos = _rotaDTO.Rota.RateLimitInterval > 0 ? _rotaDTO.Rota.RateLimitInterval : 60;
                 var permitLimit = _rotaDTO.Rota.RateLimitRequests > 0 ? _rotaDTO.Rota.RateLimitRequests : 10;
-                var limiterKey = $"ratelimit:{_rotaDTO.Rota.Id}:user:{userKey}";
+                var window = TimeSpan.FromSeconds(intervaloSegundos);
+                var limiterKey = $"ratelimit:rota:{_rotaDTO.Rota.Id}:limit:{permitLimit}:window:{intervaloSegundos}:user:{userKey}";
 
-                var limiter = _limiters.GetOrAdd(limiterKey, _ => new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = permitLimit,
-                    Window = TimeSpan.FromSeconds(intervaloSegundos),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                }));
+                var limiter = _rateLimiterCache.GetOrCreate(limiterKey, permitLimit, window);
 
                 using var lease = await limiter.AcquireAsync(1, context.RequestAborted);
                 if (!lease.IsAcquired)

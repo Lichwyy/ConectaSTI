@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ConectaSTI.Cache\ConectaSTI.Cache.csproj" />
     <ProjectReference Include="..\ConectaSTI.Dominio\ConectaSTI.Dominio.csproj" />
   </ItemGroup>
 

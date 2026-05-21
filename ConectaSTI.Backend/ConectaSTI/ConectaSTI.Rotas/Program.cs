@@ -1,3 +1,4 @@
+using ConectaSTI.Cache.Extensoes;
 using ConectaSTI.Dominio.DTOs;
 using ConectaSTI.Rotas.Interfaces;
 using ConectaSTI.Rotas.Middlewares;
@@ -8,7 +9,9 @@ using FGB.Dominio.Repositorios;
 using FGB.Dominio.Servicos;
 using FGB.IRepositorios;
 using FGB.Servicos;
+using Microsoft.AspNetCore.HttpOverrides;
 using NHibernate.Cfg;
+using System.Net;
 using NHSession = NHibernate.ISession;
 using NHSessionFactory = NHibernate.ISessionFactory;
 
@@ -48,6 +51,8 @@ public class Program
 
         builder.Services.Configure<ServicoRequestOptions>(builder.Configuration.GetSection("ServicoRequest"));
         builder.Services.AddTransient<IRequest, ServicoRequest>();
+        builder.Services.AddConectaCache();
+        builder.Services.Configure<ForwardedHeadersOptions>(options => ConfigureForwardedHeaders(options, builder.Configuration));
 
         builder.Services.AddScoped<RotaDTO>();
 
@@ -71,6 +76,8 @@ public class Program
             migracao.UpdateDatabase(migrationFolder);
         }
 
+        app.UseForwardedHeaders();
+
         if (!app.Environment.IsDevelopment())
         {
             app.UseHttpsRedirection();
@@ -84,5 +91,64 @@ public class Program
         app.UseMiddleware<ExecutionMiddleware>();
 
         app.Run();
+    }
+
+    private static void ConfigureForwardedHeaders(ForwardedHeadersOptions options, IConfiguration configuration)
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownProxies.Clear();
+        options.KnownIPNetworks.Clear();
+
+        foreach (var proxy in configuration.GetSection("ForwardedHeaders:KnownProxies").GetChildren())
+        {
+            if (IPAddress.TryParse(proxy.Value, out var ipAddress))
+            {
+                options.KnownProxies.Add(ipAddress);
+            }
+        }
+
+        foreach (var network in configuration.GetSection("ForwardedHeaders:KnownNetworks").GetChildren())
+        {
+            if (TryParseNetwork(network.Value, out var ipNetwork))
+            {
+                options.KnownIPNetworks.Add(ipNetwork);
+            }
+        }
+    }
+
+    private static bool TryParseNetwork(string value, out System.Net.IPNetwork network)
+    {
+        network = default!;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var partes = value.Split('/', 2, StringSplitOptions.TrimEntries);
+        if (partes.Length != 2)
+        {
+            return false;
+        }
+
+        if (!IPAddress.TryParse(partes[0], out var prefix))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(partes[1], out var prefixLength))
+        {
+            return false;
+        }
+
+        try
+        {
+            network = new System.Net.IPNetwork(prefix, prefixLength);
+            return true;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return false;
+        }
     }
 }

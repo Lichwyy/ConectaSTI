@@ -43,7 +43,7 @@ namespace ConectaSTI.Rotas.Middlewares
             }
 
             _rotaDTO.Rota = rota;
-            _rotaDTO.Headers = parametros;
+            _rotaDTO.RouteParams = parametros;
 
             await next(context);
         }
