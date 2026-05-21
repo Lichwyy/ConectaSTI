@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: conectasti-postgres
+    environment:
+      POSTGRES_DB: ConectaSTI
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ConectaSTI"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  conectasti-api:
+    build:
+      context: .
+      dockerfile: ConectaSTI/ConectaSTI.Api/Dockerfile
+    container_name: conectasti-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Server=postgres;Port=5432;Database=ConectaSTI;User Id=postgres;Password=1234
+      MigrateDb: "true"
+    ports:
+      - "5055:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  conectasti-rotas:
+    build:
+      context: .
+      dockerfile: ConectaSTI/ConectaSTI.Rotas/Dockerfile
+    container_name: conectasti-rotas
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Server=postgres;Port=5432;Database=ConectaSTI;User Id=postgres;Password=1234
+      ExecutionEngine: http://conectasti-api:8080
+      MigrateDb: "false"
+    ports:
+      - "5184:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      conectasti-api:
+        condition: service_started
+
+volumes:
+  postgres_data:

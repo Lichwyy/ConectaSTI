@@ -8,34 +8,32 @@ namespace ConectaSTI.Api.Controllers;
 
 public class FuncaoController : CrudControllerBase<Funcao, Funcao>
 {
-    private readonly ServicoFuncao _servico;
 
     public FuncaoController(ServicoFuncao servico, IMapper mapper) : base(servico, mapper)
     {
-        _servico = servico;
     }
 
-    [HttpPost("/funcao/criar-js")]
-    [Consumes("text/plain")]
-    [Produces("application/json")]
-    public IActionResult CriarJs([FromBody] string corpoDaFuncao, [FromQuery] string nome, [FromQuery] string parametro = null)
-    {
-        if (string.IsNullOrWhiteSpace(nome))
-            return BadRequest("O parâmetro 'nome' é obrigatório.");
+    //[HttpPost("/funcao/criar-js")]
+    //[Consumes("text/plain")]
+    //[Produces("application/json")]
+    //public IActionResult CriarJs([FromBody] string corpoDaFuncao, [FromQuery] string nome, [FromQuery] string parametro = null)
+    //{
+    //    if (string.IsNullOrWhiteSpace(nome))
+    //        return BadRequest("O parâmetro 'nome' é obrigatório.");
 
-        if (string.IsNullOrWhiteSpace(corpoDaFuncao))
-            return BadRequest("O corpo da função JS não pode ser vazio.");
+    //    if (string.IsNullOrWhiteSpace(corpoDaFuncao))
+    //        return BadRequest("O corpo da função JS não pode ser vazio.");
 
-        var funcao = new Funcao
-        {
-            Nome = nome,
-            Parametro = parametro,
-            CorpoDaFuncao = corpoDaFuncao
-        };
+    //    var funcao = new Funcao
+    //    {
+    //        Nome = nome,
+    //        Parametro = parametro,
+    //        CorpoDaFuncao = corpoDaFuncao
+    //    };
 
-        if (!_servico.Inclui(funcao))
-            return BadRequest(_servico.Mensagens);
+    //    if (!_servico.Inclui(funcao))
+    //        return BadRequest(_servico.Mensagens);
 
-        return Ok(funcao);
-    }
+    //    return Ok(funcao);
+    //}
 }

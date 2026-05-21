@@ -10,22 +10,22 @@ namespace ConectaSTI.Api.Controllers;
 
 public class FluxoController : CrudControllerBase<Fluxo, Fluxo>
 {
-    private IVersionarExecutor _versionarExecutor;
+    //private IVersionarExecutor _versionarExecutor;
     private IFluxoExecutor _fluxoExecutor;
 
-    public FluxoController(ServicoFluxo servico, IMapper mapper, IVersionarExecutor versionarExecutor, IFluxoExecutor fluxoExecutor) : base(servico, mapper)
+    public FluxoController(ServicoFluxo servico, IMapper mapper, IFluxoExecutor fluxoExecutor) : base(servico, mapper)
     {
-        _versionarExecutor = versionarExecutor;
+        //_versionarExecutor = versionarExecutor;
         _fluxoExecutor = fluxoExecutor;
     }
     
-    [HttpPost("/salvarFluxo/{fluxoId:long}")]
-    public virtual IActionResult SalvarFluxo(long fluxoId)
-    {
-        var fluxoVersionado = _versionarExecutor.Execute(fluxoId);
+    //[HttpPost("/salvarFluxo/{fluxoId:long}")]
+    //public virtual IActionResult SalvarFluxo(long fluxoId)
+    //{
+    //    var fluxoVersionado = _versionarExecutor.Execute(fluxoId);
         
-        return Ok(fluxoVersionado);
-    }
+    //    return Ok(fluxoVersionado);
+    //}
 
     [HttpPost("/executarfluxo/{fluxoId}")]
     public async Task<IActionResult> ExecutarFluxo(long fluxoId)

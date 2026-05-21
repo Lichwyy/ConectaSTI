@@ -1,0 +1,975 @@
+INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+SELECT current_timestamp, current_timestamp, 'https://pokeapi.co/api/v2', NULL, 'Exemplo - PokeAPI', 'API publica de Pokemon para exemplos de fluxo.'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM integracao
+    WHERE nome = 'Exemplo - PokeAPI'
+);
+
+INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+SELECT current_timestamp, current_timestamp, 'https://viacep.com.br/ws', NULL, 'Exemplo - ViaCEP', 'API publica de CEP para exemplos de fluxo.'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM integracao
+    WHERE nome = 'Exemplo - ViaCEP'
+);
+
+INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+SELECT current_timestamp, current_timestamp, 'https://api.agify.io', NULL, 'Exemplo - Agify', 'API publica de estimativa de idade para exemplos de fluxo.'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM integracao
+    WHERE nome = 'Exemplo - Agify'
+);
+
+INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+SELECT current_timestamp, current_timestamp, 'pokemon/ditto', i.id, 1, 'Busca o Ditto na PokeAPI.', NULL
+FROM integracao i
+WHERE i.nome = 'Exemplo - PokeAPI'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM end_point e
+      WHERE e.integracao_id = i.id
+        AND e.recurso = 'pokemon/ditto'
+        AND e.verbo = 1
+  );
+
+INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+SELECT current_timestamp, current_timestamp, '01001000/json/', i.id, 1, 'Busca um CEP fixo na ViaCEP.', NULL
+FROM integracao i
+WHERE i.nome = 'Exemplo - ViaCEP'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM end_point e
+      WHERE e.integracao_id = i.id
+        AND e.recurso = '01001000/json/'
+        AND e.verbo = 1
+  );
+
+INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+SELECT current_timestamp, current_timestamp, chr(63) || 'name=maria', i.id, 1, 'Busca estimativa de idade para Maria na Agify.', NULL
+FROM integracao i
+WHERE i.nome = 'Exemplo - Agify'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM end_point e
+      WHERE e.integracao_id = i.id
+        AND e.recurso = chr(63) || 'name=maria'
+        AND e.verbo = 1
+  );
+
+INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Funcao Ditto Resumido',
+    'const response = {};
+const abilities = [];
+if (Array.isArray($input.abilities)) {
+    $input.abilities.forEach(function (item) {
+        if (item && item.ability && item.ability.name) {
+            abilities.push(item.ability.name);
+        }
+    });
+}
+
+const types = [];
+if (Array.isArray($input.types)) {
+    $input.types.forEach(function (item) {
+        if (item && item.type && item.type.name) {
+            types.push(item.type.name);
+        }
+    });
+}
+
+let artwork = null;
+if ($input.sprites
+    && $input.sprites.other
+    && $input.sprites.other["official-artwork"]) {
+    artwork = $input.sprites.other["official-artwork"].front_default;
+}
+
+let latestCry = null;
+if ($input.cries) {
+    latestCry = $input.cries.latest;
+}
+
+response.id = $input.id;
+response.name = $input.name;
+response.baseExperience = $input.base_experience;
+response.height = $input.height;
+response.weight = $input.weight;
+response.types = types;
+response.abilities = abilities;
+response.officialArtwork = artwork;
+response.latestCry = latestCry;
+
+return response;',
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM funcao
+    WHERE nome = 'Exemplo - Funcao Ditto Resumido'
+);
+
+INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Funcao ViaCEP Resumido',
+    'const response = {};
+response.cep = $input.cep;
+response.logradouro = $input.logradouro;
+response.bairro = $input.bairro;
+response.localidade = $input.localidade;
+response.uf = $input.uf;
+response.ddd = $input.ddd;
+response.ibge = $input.ibge;
+
+return response;',
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM funcao
+    WHERE nome = 'Exemplo - Funcao ViaCEP Resumido'
+);
+
+INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Funcao Agify Salvar Cache',
+    'const response = {};
+const cacheKey = "seed" + String.fromCharCode(58) + "agify" + String.fromCharCode(58) + "maria";
+
+response.name = $input.name;
+response.age = $input.age;
+response.count = $input.count;
+response.provider = "Agify";
+response.cacheKey = cacheKey;
+response.cachedAt = new Date().toISOString();
+
+return response;',
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM funcao
+    WHERE nome = 'Exemplo - Funcao Agify Salvar Cache'
+);
+
+INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Funcao Agify Ler Cache',
+    'const response = {};
+const defaultCacheKey = "seed" + String.fromCharCode(58) + "agify" + String.fromCharCode(58) + "maria";
+let age = $input.age;
+if (age == null) {
+    age = "unknown";
+}
+
+let count = $input.count;
+if (count == null) {
+    count = 0;
+}
+const name = $input.name || "Maria";
+
+response.source = "storage";
+response.cacheKey = $input.cacheKey || defaultCacheKey;
+response.cachedAt = $input.cachedAt || null;
+response.name = name;
+response.age = $input.age;
+response.count = $input.count;
+response.summary = name + " has estimated age " + age + " based on " + count + " samples.";
+
+return response;',
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM funcao
+    WHERE nome = 'Exemplo - Funcao Agify Ler Cache'
+);
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, e.id, NULL, NULL, 0
+FROM end_point e
+JOIN integracao i ON i.id = e.integracao_id
+WHERE i.nome = 'Exemplo - PokeAPI'
+  AND e.recurso = 'pokemon/ditto'
+  AND e.verbo = 1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 1
+        AND n.end_point_id = e.id
+        AND n.funcao_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, e.id, NULL, NULL, 0
+FROM end_point e
+JOIN integracao i ON i.id = e.integracao_id
+WHERE i.nome = 'Exemplo - ViaCEP'
+  AND e.recurso = '01001000/json/'
+  AND e.verbo = 1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 1
+        AND n.end_point_id = e.id
+        AND n.funcao_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, e.id, NULL, NULL, 0
+FROM end_point e
+JOIN integracao i ON i.id = e.integracao_id
+WHERE i.nome = 'Exemplo - Agify'
+  AND e.recurso = chr(63) || 'name=maria'
+  AND e.verbo = 1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 1
+        AND n.end_point_id = e.id
+        AND n.funcao_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 2, NULL, NULL, f.id, NULL, NULL, NULL, 0
+FROM funcao f
+WHERE f.nome = 'Exemplo - Funcao Ditto Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 2
+        AND n.funcao_id = f.id
+        AND n.end_point_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 2, NULL, NULL, f.id, NULL, NULL, NULL, 0
+FROM funcao f
+WHERE f.nome = 'Exemplo - Funcao ViaCEP Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 2
+        AND n.funcao_id = f.id
+        AND n.end_point_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 2, NULL, NULL, f.id, NULL, NULL, NULL, 0
+FROM funcao f
+WHERE f.nome = 'Exemplo - Funcao Agify Salvar Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 2
+        AND n.funcao_id = f.id
+        AND n.end_point_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 2, NULL, NULL, f.id, NULL, NULL, NULL, 0
+FROM funcao f
+WHERE f.nome = 'Exemplo - Funcao Agify Ler Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 2
+        AND n.funcao_id = f.id
+        AND n.end_point_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 3, NULL, NULL, NULL, NULL, NULL, 'seed' || chr(58) || 'agify' || chr(58) || 'maria', 60
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM no
+    WHERE tipo = 3
+      AND chave_valor = 'seed' || chr(58) || 'agify' || chr(58) || 'maria'
+);
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 4, NULL, NULL, NULL, NULL, NULL, 'seed' || chr(58) || 'agify' || chr(58) || 'maria', 0
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM no
+    WHERE tipo = 4
+      AND chave_valor = 'seed' || chr(58) || 'agify' || chr(58) || 'maria'
+);
+
+INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+SELECT current_timestamp, current_timestamp, 'Exemplo - Fluxo Pokemon Ditto Resumido'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fluxo
+    WHERE nome = 'Exemplo - Fluxo Pokemon Ditto Resumido'
+);
+
+INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+SELECT current_timestamp, current_timestamp, 'Exemplo - Fluxo ViaCEP Resumido'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fluxo
+    WHERE nome = 'Exemplo - Fluxo ViaCEP Resumido'
+);
+
+INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+SELECT current_timestamp, current_timestamp, 'Exemplo - Fluxo Agify Salvar Cache'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fluxo
+    WHERE nome = 'Exemplo - Fluxo Agify Salvar Cache'
+);
+
+INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+SELECT current_timestamp, current_timestamp, 'Exemplo - Fluxo Agify Ler Cache'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fluxo
+    WHERE nome = 'Exemplo - Fluxo Agify Ler Cache'
+);
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    1,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN end_point e ON e.id = n.end_point_id
+        JOIN integracao i ON i.id = e.integracao_id
+        WHERE n.tipo = 1
+          AND i.nome = 'Exemplo - PokeAPI'
+          AND e.recurso = 'pokemon/ditto'
+          AND e.verbo = 1
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Pokemon Ditto Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 1
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    2,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN funcao fn ON fn.id = n.funcao_id
+        WHERE n.tipo = 2
+          AND fn.nome = 'Exemplo - Funcao Ditto Resumido'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    true,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Pokemon Ditto Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 2
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    1,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN end_point e ON e.id = n.end_point_id
+        JOIN integracao i ON i.id = e.integracao_id
+        WHERE n.tipo = 1
+          AND i.nome = 'Exemplo - ViaCEP'
+          AND e.recurso = '01001000/json/'
+          AND e.verbo = 1
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo ViaCEP Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 1
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    2,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN funcao fn ON fn.id = n.funcao_id
+        WHERE n.tipo = 2
+          AND fn.nome = 'Exemplo - Funcao ViaCEP Resumido'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    true,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo ViaCEP Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 2
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    1,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN end_point e ON e.id = n.end_point_id
+        JOIN integracao i ON i.id = e.integracao_id
+        WHERE n.tipo = 1
+          AND i.nome = 'Exemplo - Agify'
+          AND e.recurso = chr(63) || 'name=maria'
+          AND e.verbo = 1
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Salvar Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 1
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    2,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN funcao fn ON fn.id = n.funcao_id
+        WHERE n.tipo = 2
+          AND fn.nome = 'Exemplo - Funcao Agify Salvar Cache'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    true,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Salvar Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 2
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    3,
+    (
+        SELECT n.id
+        FROM no n
+        WHERE n.tipo = 3
+          AND n.chave_valor = 'seed' || chr(58) || 'agify' || chr(58) || 'maria'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    true,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Salvar Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 3
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    1,
+    (
+        SELECT n.id
+        FROM no n
+        WHERE n.tipo = 4
+          AND n.chave_valor = 'seed' || chr(58) || 'agify' || chr(58) || 'maria'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Ler Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 1
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    2,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN funcao fn ON fn.id = n.funcao_id
+        WHERE n.tipo = 2
+          AND fn.nome = 'Exemplo - Funcao Agify Ler Cache'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    true,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Ler Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 2
+  );
+
+INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    f.id,
+    f.nome,
+    1,
+    CAST(json_build_object(
+        'Operacoes',
+        json_build_array(
+            json_build_object('Ordem', 1, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN end_point e ON e.id = n.end_point_id
+                JOIN integracao i ON i.id = e.integracao_id
+                WHERE n.tipo = 1
+                  AND i.nome = 'Exemplo - PokeAPI'
+                  AND e.recurso = 'pokemon/ditto'
+                  AND e.verbo = 1
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN funcao fn ON fn.id = n.funcao_id
+                WHERE n.tipo = 2
+                  AND fn.nome = 'Exemplo - Funcao Ditto Resumido'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )
+    ) AS text),
+    true
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Pokemon Ditto Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM fluxo_versionado fv
+      WHERE fv.fluxo_id = f.id
+        AND fv.versao = 1
+  );
+
+INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    f.id,
+    f.nome,
+    1,
+    CAST(json_build_object(
+        'Operacoes',
+        json_build_array(
+            json_build_object('Ordem', 1, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN end_point e ON e.id = n.end_point_id
+                JOIN integracao i ON i.id = e.integracao_id
+                WHERE n.tipo = 1
+                  AND i.nome = 'Exemplo - ViaCEP'
+                  AND e.recurso = '01001000/json/'
+                  AND e.verbo = 1
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN funcao fn ON fn.id = n.funcao_id
+                WHERE n.tipo = 2
+                  AND fn.nome = 'Exemplo - Funcao ViaCEP Resumido'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )
+    ) AS text),
+    true
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo ViaCEP Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM fluxo_versionado fv
+      WHERE fv.fluxo_id = f.id
+        AND fv.versao = 1
+  );
+
+INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    f.id,
+    f.nome,
+    1,
+    CAST(json_build_object(
+        'Operacoes',
+        json_build_array(
+            json_build_object('Ordem', 1, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN end_point e ON e.id = n.end_point_id
+                JOIN integracao i ON i.id = e.integracao_id
+                WHERE n.tipo = 1
+                  AND i.nome = 'Exemplo - Agify'
+                  AND e.recurso = chr(63) || 'name=maria'
+                  AND e.verbo = 1
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN funcao fn ON fn.id = n.funcao_id
+                WHERE n.tipo = 2
+                  AND fn.nome = 'Exemplo - Funcao Agify Salvar Cache'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 3, 'NoId', (
+                SELECT n.id
+                FROM no n
+                WHERE n.tipo = 3
+                  AND n.chave_valor = 'seed' || chr(58) || 'agify' || chr(58) || 'maria'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )
+    ) AS text),
+    true
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Salvar Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM fluxo_versionado fv
+      WHERE fv.fluxo_id = f.id
+        AND fv.versao = 1
+  );
+
+INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    f.id,
+    f.nome,
+    1,
+    CAST(json_build_object(
+        'Operacoes',
+        json_build_array(
+            json_build_object('Ordem', 1, 'NoId', (
+                SELECT n.id
+                FROM no n
+                WHERE n.tipo = 4
+                  AND n.chave_valor = 'seed' || chr(58) || 'agify' || chr(58) || 'maria'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN funcao fn ON fn.id = n.funcao_id
+                WHERE n.tipo = 2
+                  AND fn.nome = 'Exemplo - Funcao Agify Ler Cache'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )
+    ) AS text),
+    true
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Agify Ler Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM fluxo_versionado fv
+      WHERE fv.fluxo_id = f.id
+        AND fv.versao = 1
+  );
+
+INSERT INTO rota (
+    criadoem,
+    ultimaalteracao,
+    nome,
+    descricao,
+    senha_acesso,
+    usar_fluxo_mais_atual,
+    rate_limit,
+    rate_limit_requests,
+    rate_limit_interval,
+    idempotencia,
+    json_schema_resp,
+    json_schema_req,
+    pipeline_versao_id,
+    pipeline_versao,
+    caminho,
+    metodo
+)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Rota Pokemon Ditto',
+    'Retorna um payload resumido do Ditto usando PokeAPI e FuncaoJS.',
+    'poke-ditto-123',
+    true,
+    false,
+    0,
+    60,
+    false,
+    NULL,
+    NULL,
+    fv.id,
+    f.nome || '_1',
+    'examples/pokemon/ditto',
+    1
+FROM fluxo f
+JOIN fluxo_versionado fv ON fv.fluxo_id = f.id AND fv.versao = 1
+WHERE f.nome = 'Exemplo - Fluxo Pokemon Ditto Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM rota r
+      WHERE r.metodo = 1
+        AND r.caminho = 'examples/pokemon/ditto'
+  );
+
+INSERT INTO rota (
+    criadoem,
+    ultimaalteracao,
+    nome,
+    descricao,
+    senha_acesso,
+    usar_fluxo_mais_atual,
+    rate_limit,
+    rate_limit_requests,
+    rate_limit_interval,
+    idempotencia,
+    json_schema_resp,
+    json_schema_req,
+    pipeline_versao_id,
+    pipeline_versao,
+    caminho,
+    metodo
+)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Rota ViaCEP',
+    'Retorna um payload resumido da ViaCEP usando FuncaoJS.',
+    'agify-cache-123',
+    true,
+    false,
+    0,
+    60,
+    false,
+    NULL,
+    NULL,
+    fv.id,
+    f.nome || '_1',
+    'examples/cep/01001000',
+    1
+FROM fluxo f
+JOIN fluxo_versionado fv ON fv.fluxo_id = f.id AND fv.versao = 1
+WHERE f.nome = 'Exemplo - Fluxo ViaCEP Resumido'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM rota r
+      WHERE r.metodo = 1
+        AND r.caminho = 'examples/cep/01001000'
+  );
+
+INSERT INTO rota (
+    criadoem,
+    ultimaalteracao,
+    nome,
+    descricao,
+    senha_acesso,
+    usar_fluxo_mais_atual,
+    rate_limit,
+    rate_limit_requests,
+    rate_limit_interval,
+    idempotencia,
+    json_schema_resp,
+    json_schema_req,
+    pipeline_versao_id,
+    pipeline_versao,
+    caminho,
+    metodo
+)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Rota Agify Save',
+    'Consulta a Agify, resume os dados e salva no storage.',
+    NULL,
+    true,
+    true,
+    5,
+    60,
+    false,
+    NULL,
+    NULL,
+    fv.id,
+    f.nome || '_1',
+    'examples/agify/maria/save',
+    1
+FROM fluxo f
+JOIN fluxo_versionado fv ON fv.fluxo_id = f.id AND fv.versao = 1
+WHERE f.nome = 'Exemplo - Fluxo Agify Salvar Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM rota r
+      WHERE r.metodo = 1
+        AND r.caminho = 'examples/agify/maria/save'
+  );
+
+INSERT INTO rota (
+    criadoem,
+    ultimaalteracao,
+    nome,
+    descricao,
+    senha_acesso,
+    usar_fluxo_mais_atual,
+    rate_limit,
+    rate_limit_requests,
+    rate_limit_interval,
+    idempotencia,
+    json_schema_resp,
+    json_schema_req,
+    pipeline_versao_id,
+    pipeline_versao,
+    caminho,
+    metodo
+)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Rota Agify Cache',
+    'Le o storage da Agify e devolve um resumo diferente do fluxo de save.',
+    'agify-cache-123',
+    true,
+    false,
+    0,
+    60,
+    false,
+    NULL,
+    NULL,
+    fv.id,
+    f.nome || '_1',
+    'examples/agify/maria/cache',
+    1
+FROM fluxo f
+JOIN fluxo_versionado fv ON fv.fluxo_id = f.id AND fv.versao = 1
+WHERE f.nome = 'Exemplo - Fluxo Agify Ler Cache'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM rota r
+      WHERE r.metodo = 1
+        AND r.caminho = 'examples/agify/maria/cache'
+  );

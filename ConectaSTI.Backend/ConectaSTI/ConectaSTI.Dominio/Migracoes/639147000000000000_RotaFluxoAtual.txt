@@ -1,0 +1,28 @@
+ALTER TABLE rota
+    ADD COLUMN IF NOT EXISTS nome VARCHAR(255) NOT NULL DEFAULT '';
+
+ALTER TABLE rota
+    ADD COLUMN IF NOT EXISTS descricao TEXT NULL;
+
+ALTER TABLE rota
+    ADD COLUMN IF NOT EXISTS senha_acesso VARCHAR(500) NULL;
+
+ALTER TABLE rota
+    ADD COLUMN IF NOT EXISTS usar_fluxo_mais_atual BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE fluxo_versionado
+    ADD COLUMN IF NOT EXISTS atual BOOLEAN NOT NULL DEFAULT FALSE;
+
+WITH versoes_rankeadas AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            PARTITION BY fluxo_id
+            ORDER BY versao DESC, id DESC
+        ) AS linha
+    FROM fluxo_versionado
+)
+UPDATE fluxo_versionado fv
+SET atual = vr.linha = 1
+FROM versoes_rankeadas vr
+WHERE fv.id = vr.id;

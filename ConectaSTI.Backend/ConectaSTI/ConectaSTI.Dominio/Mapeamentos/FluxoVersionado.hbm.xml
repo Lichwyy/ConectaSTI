@@ -14,5 +14,6 @@
     <property name="Nome" column="nome" type="string" not-null="true" />
     <property name="Versao" column="versao" type="int" not-null="true" />
     <property name="Payload" column="payload" type="StringClob" not-null="true" />
+    <property name="Atual" column="atual" type="bool" not-null="true" />
   </class>
 </hibernate-mapping>
