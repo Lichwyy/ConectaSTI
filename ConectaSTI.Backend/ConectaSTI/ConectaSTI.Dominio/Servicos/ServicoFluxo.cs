@@ -132,4 +132,16 @@ public class ServicoFluxo : ServicoCrud<Fluxo>
         }
         return !Mensagens.HasErro();
     }
+
+    public override Fluxo Merge(Fluxo entidade)
+    {
+        Fluxo fluxoAtualizado = base.Merge(entidade);
+        if (fluxoAtualizado == null)
+        {
+            return null;
+        }
+
+        _versionar.Execute(fluxoAtualizado.Id);
+        return Mensagens.HasErro() ? null : fluxoAtualizado;
+    }
 }

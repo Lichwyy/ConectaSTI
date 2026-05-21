@@ -10,6 +10,10 @@
     <property name="CriadoEm" column="criadoem" type="DateTime" not-null="false" />
     <property name="UltimaAlteracao" column="ultimaalteracao" type="DateTime" not-null="false" />
 
+    <property name="Nome" column="nome" type="string" not-null="true" />
+    <property name="Descricao" column="descricao" type="StringClob" not-null="false" />
+    <property name="SenhaAcesso" column="senha_acesso" type="string" not-null="false" />
+    <property name="UsarFluxoMaisAtual" column="usar_fluxo_mais_atual" type="bool" not-null="true" />
     <property name="RateLimit" column="rate_limit" type="bool" not-null="true" />
     <property name="RateLimitRequests" column="rate_limit_requests" type="int" not-null="true" />
     <property name="RateLimitInterval" column="rate_limit_interval" type="int" not-null="true" />

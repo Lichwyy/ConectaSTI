@@ -29,19 +29,33 @@ public class VersionarExecutor : IVersionarExecutor
             {
                 Fluxo fluxo = _repositorioSessao.RetornaComLock<Fluxo>(fluxoId);
                 if (fluxo == null)
+                {
                     return null;
+                }
 
                 int ultimaVersao = _consulta.Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId)
                     .Select(x => (int?)x.Versao)
                     .Max() ?? 0;
 
                 int proximaVersao = ultimaVersao + 1;
+                List<FluxoVersionado> versoesAtuais = _consulta.Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId && x.Atual)
+                    .ToList();
 
-                FluxoVersionado fluxoVersionado = new FluxoVersionado()
+                var repositorio = _repositorioSessao.GetRepositorio();
+
+                foreach (FluxoVersionado versaoAtual in versoesAtuais) // Desativa as as antigas versões ativas do fluxo
+                {
+                    versaoAtual.Atual = false;
+                    versaoAtual.UltimaAlteracao = DateTime.Now;
+                    repositorio.Merge(versaoAtual);
+                }
+
+                FluxoVersionado fluxoVersionado = new FluxoVersionado
                 {
                     FluxoId = fluxoId,
                     Nome = fluxo.Nome,
                     Versao = proximaVersao,
+                    Atual = true,
                 };
 
                 var opcoes = new JsonSerializerOptions
@@ -50,7 +64,7 @@ public class VersionarExecutor : IVersionarExecutor
                     WriteIndented = false
                 };
 
-                FluxoDTO fluxoDto = new FluxoDTO()
+                FluxoDTO fluxoDto = new FluxoDTO
                 {
                     Operacoes = GetAllOperation(fluxo)
                 };
@@ -58,20 +72,11 @@ public class VersionarExecutor : IVersionarExecutor
                 string fluxoSerializado = JsonSerializer.Serialize(fluxoDto, opcoes);
 
                 fluxoVersionado.Payload = fluxoSerializado;
-
-                // --- INÍCIO DA SOLUÇÃO 1 CORRIGIDA ---
                 fluxoVersionado.CriadoEm = DateTime.Now;
                 fluxoVersionado.UltimaAlteracao = DateTime.Now;
 
-                // 1. Obtém o repositório de CRUD a partir da sessão
-                var repositorio = _repositorioSessao.GetRepositorio();
-
-                // 2. Faz o inclui utilizando o repositório correto
                 repositorio.Inclui(fluxoVersionado);
-
-                // 3. O Executor comita a transação da sessão principal
                 _repositorioSessao.CommitaTransacao();
-                // --- FIM DA SOLUÇÃO 1 CORRIGIDA ---
 
                 return fluxoVersionado;
             }
@@ -81,7 +86,9 @@ public class VersionarExecutor : IVersionarExecutor
                 {
                     _repositorioSessao.RollBackTransacao();
                 }
-                catch { }
+                catch
+                {
+                }
 
                 throw;
             }
@@ -94,7 +101,7 @@ public class VersionarExecutor : IVersionarExecutor
 
         foreach (Operacao operacao in fluxo.Operacoes)
         {
-            OperacaoDTO operacaoDto = new OperacaoDTO()
+            OperacaoDTO operacaoDto = new OperacaoDTO
             {
                 BackoffDelay = operacao.BackoffDelay,
                 BackoffMultiplier = operacao.BackoffMultiplier,

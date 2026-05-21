@@ -60,8 +60,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
     private async Task<RespostaHttp<object>> Executar(long fluxoId, long? logFluxoPaiId)
     {
         FluxoVersionado fluxoVersionado = _repositorioConsulta
-            .Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId)
-            .OrderByDescending(x => x.Id)
+            .Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId && x.Atual)
             .FirstOrDefault();
 
         if (fluxoVersionado == null)

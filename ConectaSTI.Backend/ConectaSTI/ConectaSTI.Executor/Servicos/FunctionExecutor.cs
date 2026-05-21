@@ -80,9 +80,11 @@ public class FunctionExecutor : IFunctionExecutor
 
             var resultadoJS = engine.Evaluate(scriptFormatado);
 
+            string resultadoSerializado = resultadoJS.AsString();
+
             resposta.Status = 200;
-            resposta.RespostaBody = resultadoJS.AsString();
-            resposta.Resposta = resposta.RespostaBody;
+            resposta.RespostaBody = resultadoSerializado;
+            resposta.Resposta = ConverterResultado(resultadoSerializado);
         }
         catch (Jint.Runtime.JavaScriptException ex)
         {
@@ -143,5 +145,15 @@ public class FunctionExecutor : IFunctionExecutor
         {
             return false;
         }
+    }
+
+    private object ConverterResultado(string resultadoSerializado)
+    {
+        if (!IsValidJson(resultadoSerializado))
+        {
+            return resultadoSerializado;
+        }
+
+        return _converter.Desserializar<object>(resultadoSerializado, TipoSerializacao.None) ?? resultadoSerializado;
     }
 }

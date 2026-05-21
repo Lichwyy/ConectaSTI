@@ -56,6 +56,7 @@ public class Program
 
         builder.Services.AddScoped<RoutingMiddleware>();
         builder.Services.AddScoped<RateLimitMiddleware>();
+        builder.Services.AddScoped<PasswordMiddleware>();
         builder.Services.AddScoped<ValidationSchemaMiddleware>();
         builder.Services.AddScoped<RequestDataMiddleware>();
         builder.Services.AddScoped<ExecutionMiddleware>();
@@ -77,6 +78,7 @@ public class Program
 
         app.UseMiddleware<RoutingMiddleware>();
         app.UseMiddleware<RateLimitMiddleware>();
+        app.UseMiddleware<PasswordMiddleware>();
         app.UseMiddleware<ValidationSchemaMiddleware>();
         app.UseMiddleware<RequestDataMiddleware>();
         app.UseMiddleware<ExecutionMiddleware>();

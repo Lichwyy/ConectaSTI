@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace FGB.Servicos
 {
@@ -8,6 +9,7 @@ namespace FGB.Servicos
     {
         public string Mensagem { get; set; }
         public bool Erro { get; set; }
+        [JsonIgnore]
         public Exception Exception { get; set; }
 
         public MensagemRetorno() { }

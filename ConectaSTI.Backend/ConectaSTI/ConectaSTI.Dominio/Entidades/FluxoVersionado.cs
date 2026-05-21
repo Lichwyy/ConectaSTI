@@ -9,4 +9,5 @@ public class FluxoVersionado : EntidadeBase
     public string Nome { get; set; }
     public int Versao { get; set; }
     public string Payload { get; set; }
+    public bool Atual { get; set; } = false;
 }
