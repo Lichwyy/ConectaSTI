@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useFuncoes } from '@/hooks/useFuncoes'
-import { testeFunction } from '@/lib/api/funcoes'
 import type { Funcao } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +13,6 @@ import {
   PencilSimpleIcon,
   TrashIcon,
   PlayIcon,
-  CircleNotchIcon,
   XIcon,
   FloppyDiskIcon,
 } from '@phosphor-icons/react'
@@ -327,65 +325,23 @@ function FuncaoForm({
 }
 
 function FuncaoTester({ funcaoId }: { funcaoId: number }) {
-  const [input, setInput] = useState('')
-  const [result, setResult] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [running, setRunning] = useState(false)
-
-  async function handleTest() {
-    setRunning(true)
-    setResult(null)
-    setError(null)
-    try {
-      let body: unknown = input.trim()
-      if (body) {
-        try { body = JSON.parse(input) } catch { /* use raw string */ }
-      }
-      const res = await testeFunction(funcaoId, body)
-      setResult(JSON.stringify(res, null, 2))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro ao executar função')
-    } finally {
-      setRunning(false)
-    }
-  }
-
   return (
     <div className="border-t pt-5">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Testar função</p>
-      <div className="space-y-3">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-muted-foreground">Input (JSON)</label>
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder='{"valor": 42}'
-            rows={3}
-            className="w-full border border-input bg-background px-3 py-2 text-xs font-mono resize-none outline-none focus:ring-1 focus:ring-ring rounded-none"
-          />
-        </div>
+      <div className="space-y-3 text-xs text-muted-foreground">
+        <p>
+          Função #{funcaoId} será executada dentro de um workflow. O backend atual não expõe uma rota
+          isolada para teste direto de função.
+        </p>
         <Button
           size="sm"
           variant="outline"
           className="gap-1.5 rounded-none text-xs h-7"
-          onClick={handleTest}
-          disabled={running}
+          disabled
         >
-          {running ? <CircleNotchIcon size={12} className="animate-spin" /> : <PlayIcon size={12} />}
-          {running ? 'Executando...' : 'Executar'}
+          <PlayIcon size={12} />
+          Execute pelo workflow
         </Button>
-        {result && (
-          <div className="bg-emerald-50 border border-emerald-200 p-3">
-            <p className="text-[10px] text-emerald-700 font-medium mb-1">Resultado</p>
-            <pre className="text-xs font-mono text-emerald-800 overflow-x-auto">{result}</pre>
-          </div>
-        )}
-        {error && (
-          <div className="bg-red-50 border border-red-200 p-3">
-            <p className="text-[10px] text-red-700 font-medium mb-1">Erro</p>
-            <p className="text-xs font-mono text-red-800">{error}</p>
-          </div>
-        )}
       </div>
     </div>
   )

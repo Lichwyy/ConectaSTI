@@ -3,14 +3,13 @@
 import { useState, useEffect, useCallback, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Node, Edge } from '@xyflow/react'
-import { getFluxo, updateFluxo } from '@/lib/api/fluxos'
+import { createFluxo, executarFluxo, getFluxo, updateFluxo, type FluxoExecutionResult } from '@/lib/api/fluxos'
 import { getNo, createNo, updateNo, deleteNo } from '@/lib/api/nos'
-import { createOperacao, updateOperacao, deleteOperacao } from '@/lib/api/operacoes'
 import { useIntegracoes } from '@/hooks/useIntegracoes'
 import { useEndpoints } from '@/hooks/useEndpoints'
 import { useFuncoes } from '@/hooks/useFuncoes'
 import type {
-  Fluxo, WorkflowNodeData, TipoErro, BackoffType, CanvasState
+  Fluxo, WorkflowNodeData, TipoErro, BackoffType, CanvasState, Operacao
 } from '@/lib/types'
 import { WorkflowCanvas } from '@/components/workflow/WorkflowCanvas'
 import { NodePalette } from '@/components/workflow/NodePalette'
@@ -29,9 +28,33 @@ import { motion, AnimatePresence } from 'motion/react'
 
 const CANVAS_KEY = (id: number) => `canvas-state-${id}`
 
+function operacaoPayload(
+  data: WorkflowNodeData,
+  ordem: number,
+  noId: number,
+  fluxoId: number,
+): Partial<Operacao> {
+  const maximoRepeticao = data.maximoRepeticao ?? 0
+
+  return {
+    ...(data.operacaoId ? { id: data.operacaoId } : {}),
+    ordem,
+    noId,
+    fluxoId,
+    repetir: data.repetir ?? maximoRepeticao > 0,
+    erro: data.erro,
+    maximoRepeticao,
+    backoffType: data.backoffType,
+    backoffDelay: data.backoffDelay,
+    backoffMultiplier: data.backoffMultiplier,
+    timeout: data.timeout,
+  }
+}
+
 export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = use(params)
-  const id = Number(idStr)
+  const isDraft = idStr === 'new'
+  const id = isDraft ? 0 : Number(idStr)
   const router = useRouter()
 
   const { integracoes } = useIntegracoes()
@@ -42,6 +65,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
   const [nome, setNome] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [executing, setExecuting] = useState(false)
+  const [executionResult, setExecutionResult] = useState<FluxoExecutionResult | null>(null)
   const [selectedNode, setSelectedNode] = useState<Node<WorkflowNodeData> | null>(null)
 
   const [initialNodes, setInitialNodes] = useState<Node<WorkflowNodeData>[]>([])
@@ -56,6 +81,20 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     async function load() {
+      if (isDraft) {
+        const draftName = sessionStorage.getItem('workflow-draft-name') ?? 'Novo workflow'
+        const draftFluxo: Fluxo = { id: 0, nome: draftName, operacoes: [] }
+
+        setFluxo(draftFluxo)
+        setNome(draftName)
+        setInitialNodes([])
+        setInitialEdges([])
+        nodesRef.current = []
+        edgesRef.current = []
+        initialNoIdsRef.current = new Set()
+        return
+      }
+
       const f = await getFluxo(id).catch(() => null)
       if (!f) { router.push('/workflows'); return }
 
@@ -93,7 +132,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
           endpointId: no.endPointId ?? undefined,
           ordem: op.ordem,
           erro: op.erro,
-          maxRetries: op.maxRetries,
+          repetir: op.repetir,
+          maximoRepeticao: op.maximoRepeticao,
           backoffType: op.backoffType,
           backoffDelay: op.backoffDelay,
           backoffMultiplier: op.backoffMultiplier,
@@ -134,22 +174,25 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
     load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [id, isDraft])
 
   const handleSave = useCallback(async () => {
     if (!fluxo) return
     setSaving(true)
     try {
-      await updateFluxo(id, { nome })
-
       const currentNodes = nodesRef.current
       const currentEdges = edgesRef.current
+      if (currentNodes.length === 0) {
+        alert('Adicione ao menos um bloco antes de salvar o workflow no backend.')
+        return
+      }
 
       // Sorted left→right for ordem
       const sorted = [...currentNodes].sort((a, b) => a.position.x - b.position.x)
 
       // Build id-mapping for temp nodes
       const idMap = new Map<string, number>()
+      const operacoes: Partial<Operacao>[] = []
 
       for (let i = 0; i < sorted.length; i++) {
         const node = sorted[i]
@@ -166,52 +209,33 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         }
 
         if (d.noId < 0) {
-          // New node — create No, then Operacao
+          // New node — create No, then include its operation inside Fluxo.
           const no = await createNo(noPayload)
-          const op = await createOperacao({
-            ordem,
-            noId: no.id,
-            fluxoId: id,
-            erro: d.erro,
-            backoffType: d.backoffType,
-            maxRetries: d.maxRetries,
-            backoffDelay: d.backoffDelay,
-            backoffMultiplier: d.backoffMultiplier,
-            timeout: d.timeout,
-          })
           idMap.set(node.id, no.id)
+          operacoes.push(operacaoPayload(d, ordem, no.id, id))
           // Update node data with real ids
           nodesRef.current = nodesRef.current.map(n =>
             n.id === node.id
-              ? { ...n, id: String(no.id), data: { ...n.data, noId: no.id, operacaoId: op.id } }
+              ? { ...n, id: String(no.id), data: { ...n.data, noId: no.id } }
               : n
           )
         } else {
           // Existing node
           await updateNo(d.noId, noPayload)
-          if (d.operacaoId) {
-            await updateOperacao(d.operacaoId, {
-              ordem,
-              noId: d.noId,
-              fluxoId: id,
-              erro: d.erro,
-              backoffType: d.backoffType,
-              maxRetries: d.maxRetries,
-              backoffDelay: d.backoffDelay,
-              backoffMultiplier: d.backoffMultiplier,
-              timeout: d.timeout,
-            })
-          }
+          operacoes.push(operacaoPayload(d, ordem, d.noId, id))
           idMap.set(node.id, d.noId)
         }
       }
+
+      const savedFluxo = isDraft
+        ? await createFluxo({ nome, operacoes })
+        : await updateFluxo(id, { nome, operacoes })
+      const savedId = savedFluxo.id
 
       // Delete removed nodes
       const currentNoIds = new Set(currentNodes.map(n => n.data.noId as number).filter(n => n > 0))
       for (const noId of initialNoIdsRef.current) {
         if (!currentNoIds.has(noId)) {
-          const node = initialNodes.find(n => n.data.noId === noId)
-          if (node?.data.operacaoId) await deleteOperacao(node.data.operacaoId).catch(() => {})
           await deleteNo(noId).catch(() => {})
         }
       }
@@ -222,10 +246,16 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         const realId = idMap.get(node.id) ?? (node.data.noId as number)
         if (realId > 0) positions[String(realId)] = node.position
       }
-      localStorage.setItem(CANVAS_KEY(id), JSON.stringify({ positions, edges: currentEdges }))
+      localStorage.setItem(CANVAS_KEY(savedId), JSON.stringify({ positions, edges: currentEdges }))
 
       // Update initial ids
       initialNoIdsRef.current = new Set(nodesRef.current.map(n => n.data.noId as number).filter(n => n > 0))
+      setFluxo(savedFluxo)
+
+      if (isDraft) {
+        sessionStorage.removeItem('workflow-draft-name')
+        router.replace(`/workflows/${savedId}`)
+      }
 
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -234,7 +264,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
     } finally {
       setSaving(false)
     }
-  }, [fluxo, id, nome, initialNodes])
+  }, [fluxo, id, isDraft, nome, router])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -243,6 +273,23 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [handleSave])
+
+  async function handleExecute() {
+    if (!fluxo || isDraft) {
+      alert('Salve o workflow antes de executar.')
+      return
+    }
+
+    setExecuting(true)
+    setExecutionResult(null)
+    try {
+      setExecutionResult(await executarFluxo(fluxo.id))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erro ao executar workflow')
+    } finally {
+      setExecuting(false)
+    }
+  }
 
   const handleNodesChange = useCallback((nodes: Node<WorkflowNodeData>[]) => {
     nodesRef.current = nodes
@@ -286,10 +333,11 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
             size="sm"
             variant="outline"
             className="gap-1.5 rounded-none h-7 text-xs"
-            onClick={() => alert('Execução será implementada com o backend .NET.')}
+            onClick={handleExecute}
+            disabled={executing || isDraft}
           >
-            <PlayIcon size={12} />
-            Executar
+            {executing ? <CircleNotchIcon size={12} className="animate-spin" /> : <PlayIcon size={12} />}
+            {executing ? 'Executando...' : 'Executar'}
           </Button>
 
           <Button
@@ -314,6 +362,27 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
       {/* Canvas area */}
       <div className="flex flex-1 overflow-hidden">
+        {executionResult && (
+          <div className="absolute right-4 top-14 z-20 max-w-md border border-border bg-white/95 p-3 text-xs shadow-sm">
+            <p className="font-medium">
+              Execução {executionResult.sucesso === false ? 'finalizada com erro' : 'finalizada'}
+            </p>
+            {executionResult.retorno?.map((item, index) => (
+              <p
+                key={`${item.mensagem}-${index}`}
+                className={item.erro ? 'mt-1 text-destructive' : 'mt-1 text-muted-foreground'}
+              >
+                {item.mensagem}
+              </p>
+            ))}
+            {executionResult.respostaBody && (
+              <pre className="mt-2 max-h-40 overflow-auto bg-muted p-2 font-mono text-[11px]">
+                {executionResult.respostaBody}
+              </pre>
+            )}
+          </div>
+        )}
+
         <NodePalette
           integracoes={integracoes}
           endpoints={endpoints}
@@ -372,7 +441,7 @@ function NodeDetailPanel({
 }) {
   const d = node.data
   const [erro, setErro] = useState<TipoErro>(d.erro)
-  const [maxRetries, setMaxRetries] = useState(d.maxRetries ?? 0)
+  const [maximoRepeticao, setMaximoRepeticao] = useState(d.maximoRepeticao ?? 0)
   const [timeout, setTimeout_] = useState(d.timeout ?? 30000)
   const [backoffType, setBackoffType] = useState<BackoffType>(d.backoffType)
   const [backoffDelay, setBackoffDelay] = useState(d.backoffDelay ?? 0)
@@ -385,7 +454,8 @@ function NodeDetailPanel({
       data: {
         ...d,
         erro,
-        maxRetries,
+        repetir: maximoRepeticao > 0,
+        maximoRepeticao,
         timeout,
         backoffType,
         backoffDelay,
@@ -396,7 +466,13 @@ function NodeDetailPanel({
     onUpdate(updated)
   }
 
-  const tipoLabel = { 1: 'Requisição', 2: 'Função JS', 3: 'Salvar Storage', 4: 'Pegar Storage' }[d.tipo] ?? '—'
+  const tipoLabel = {
+    1: 'Requisição',
+    2: 'Função JS',
+    3: 'Salvar Storage',
+    4: 'Pegar Storage',
+    5: 'Fluxo',
+  }[d.tipo] ?? '—'
 
   return (
     <>
@@ -473,11 +549,11 @@ function NodeDetailPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-muted-foreground">Máx. tentativas</label>
+              <label className="text-[10px] text-muted-foreground">Máx. repetições</label>
               <Input
                 type="number"
-                value={maxRetries}
-                onChange={e => setMaxRetries(Number(e.target.value))}
+                value={maximoRepeticao}
+                onChange={e => setMaximoRepeticao(Number(e.target.value))}
                 className="h-7 text-xs rounded-none"
               />
             </div>

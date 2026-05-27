@@ -2,7 +2,7 @@ import type { Edge } from '@xyflow/react'
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 export type VerboHttp = 1 | 2 | 3 | 4 | 5
-export type TipoNo = 1 | 2 | 3 | 4
+export type TipoNo = 1 | 2 | 3 | 4 | 5
 export type TipoErro = 1 | 2 | 3
 export type BackoffType = 1 | 2 | 3
 
@@ -49,7 +49,7 @@ export interface Operacao {
   fluxoId: number
   repetir?: boolean
   erro: TipoErro
-  maxRetries?: number
+  maximoRepeticao?: number
   backoffType: BackoffType
   backoffDelay?: number
   backoffMultiplier?: number
@@ -84,7 +84,8 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   // Operacao config
   ordem?: number
   erro: TipoErro
-  maxRetries?: number
+  repetir?: boolean
+  maximoRepeticao?: number
   backoffType: BackoffType
   backoffDelay?: number
   backoffMultiplier?: number
@@ -136,10 +137,11 @@ export const METHOD_NODE_COLORS: Record<HttpMethod, string> = {
   PATCH:  'border-l-violet-500',
 }
 
-export const DEFAULT_OPERACAO: Pick<WorkflowNodeData, 'erro' | 'backoffType' | 'maxRetries' | 'backoffDelay' | 'backoffMultiplier' | 'timeout'> = {
+export const DEFAULT_OPERACAO: Pick<WorkflowNodeData, 'erro' | 'repetir' | 'backoffType' | 'maximoRepeticao' | 'backoffDelay' | 'backoffMultiplier' | 'timeout'> = {
   erro: 1,
+  repetir: false,
   backoffType: 1,
-  maxRetries: 0,
+  maximoRepeticao: 0,
   backoffDelay: 0,
   backoffMultiplier: 1,
   timeout: 30000,

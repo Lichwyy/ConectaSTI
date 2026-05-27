@@ -16,7 +16,3 @@ export async function updateNo(id: number, data: Omit<No, 'id'>): Promise<No> {
 export async function deleteNo(id: number): Promise<void> {
   return client.delete(`/No/${id}`)
 }
-
-export async function testeRequest(noId: number): Promise<unknown> {
-  return client.post<unknown>(`/testerequest/${noId}`, {})
-}

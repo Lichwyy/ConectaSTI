@@ -24,12 +24,12 @@ export function useFluxos() {
   useEffect(() => { load() }, [load])
 
   const createFluxo = useCallback(async (nome: string) => {
-    const item = await svc.createFluxo(nome)
+    const item = await svc.createFluxo({ nome, operacoes: [] })
     setFluxos(prev => [...prev, item])
     return item
   }, [])
 
-  const updateFluxo = useCallback(async (id: number, data: { nome: string }) => {
+  const updateFluxo = useCallback(async (id: number, data: svc.FluxoPayload) => {
     const item = await svc.updateFluxo(id, data)
     setFluxos(prev => prev.map(f => f.id === id ? item : f))
     return item

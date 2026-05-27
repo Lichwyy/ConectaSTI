@@ -1,29 +1,59 @@
 import { cookies } from "next/headers"
-import { NextResponse } from "next/server"
-import { jwtVerify } from "jose"
+import { type NextRequest, NextResponse } from "next/server"
 import { TOKEN_KEY } from "@/lib/auth"
+import { getTokenMaxAge, verifyAuthToken } from "@/lib/auth-server"
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET)
+type ValidateRequestBody = {
+  token?: string
+}
 
-export async function POST() {
+async function getRequestToken(request: NextRequest): Promise<string | null> {
   try {
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json({ valid: false, reason: "server_misconfig" }, { status: 500 })
-    }
+    const body = (await request.json()) as ValidateRequestBody
+    return body.token?.trim() || null
+  } catch {
+    return null
+  }
+}
 
+export async function POST(request: NextRequest) {
+  try {
     const cookieStore = await cookies()
-    const token = cookieStore.get(TOKEN_KEY)?.value
+    const requestToken = await getRequestToken(request)
+    const cookieToken = cookieStore.get(TOKEN_KEY)?.value
+    const token = requestToken ?? cookieToken
 
     if (!token) {
       return NextResponse.json({ valid: false, reason: "missing" }, { status: 401 })
     }
 
-    await jwtVerify(token, secret)
+    const payload = await verifyAuthToken(token)
+    const response = NextResponse.json({ valid: true })
 
-    return NextResponse.json({ valid: true })
+    if (requestToken || !cookieToken) {
+      const maxAge = getTokenMaxAge(payload)
+
+      response.cookies.set({
+        name: TOKEN_KEY,
+        value: token,
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        ...(maxAge ? { maxAge } : {}),
+      })
+    }
+
+    return response
   } catch (error) {
     const reason =
-      error instanceof Error && error.name === "JWTExpired" ? "expired" : "invalid"
-    return NextResponse.json({ valid: false, reason }, { status: 401 })
+      error instanceof Error && error.message === "server_misconfig"
+        ? "server_misconfig"
+        : error instanceof Error && error.name === "JWTExpired"
+          ? "expired"
+          : "invalid"
+    const status = reason === "server_misconfig" ? 500 : 401
+
+    return NextResponse.json({ valid: false, reason }, { status })
   }
 }

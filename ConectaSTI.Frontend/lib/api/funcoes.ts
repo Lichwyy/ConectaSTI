@@ -20,7 +20,3 @@ export async function updateFuncao(id: number, data: Omit<Funcao, 'id' | 'criado
 export async function deleteFuncao(id: number): Promise<void> {
   return client.delete(`/Funcao/${id}`)
 }
-
-export async function testeFunction(id: number, body: unknown): Promise<unknown> {
-  return client.post<unknown>(`/testefunction/${id}`, body)
-}

@@ -16,7 +16,7 @@ import {
 
 export default function WorkflowsPage() {
   const router = useRouter()
-  const { fluxos, loading, createFluxo, deleteFluxo } = useFluxos()
+  const { fluxos, loading, deleteFluxo } = useFluxos()
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [showInput, setShowInput] = useState(false)
@@ -26,8 +26,8 @@ export default function WorkflowsPage() {
     if (!newName.trim()) return
     setCreating(true)
     try {
-      const wf = await createFluxo(newName.trim())
-      router.push(`/workflows/${wf.id}`)
+      sessionStorage.setItem('workflow-draft-name', newName.trim())
+      router.push('/workflows/new')
     } finally {
       setCreating(false)
     }

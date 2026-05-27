@@ -1,7 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { redirectToBifrost, validateSession } from "@/lib/auth"
+import {
+  clearBifrostTokenFromCurrentUrl,
+  getBifrostTokenFromCurrentUrl,
+  redirectToBifrost,
+  validateSession,
+} from "@/lib/auth"
 
 type Status = "checking" | "authorized"
 
@@ -12,13 +17,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     let cancelled = false
 
     async function check() {
-      const valid = await validateSession()
+      const token = getBifrostTokenFromCurrentUrl()
+      const valid = await validateSession(token)
 
       if (cancelled) return
 
       if (!valid) {
         redirectToBifrost()
         return
+      }
+
+      if (token) {
+        clearBifrostTokenFromCurrentUrl()
       }
 
       setStatus("authorized")
