@@ -9,7 +9,7 @@ import { useIntegracoes } from '@/hooks/useIntegracoes'
 import { useEndpoints } from '@/hooks/useEndpoints'
 import { useFuncoes } from '@/hooks/useFuncoes'
 import type {
-  Fluxo, WorkflowNodeData, TipoErro, BackoffType, CanvasState, Operacao
+  Fluxo, WorkflowNodeData, TipoErro, BackoffType, CanvasState, Operacao, No
 } from '@/lib/types'
 import { WorkflowCanvas } from '@/components/workflow/WorkflowCanvas'
 import { NodePalette } from '@/components/workflow/NodePalette'
@@ -71,6 +71,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
   const [initialNodes, setInitialNodes] = useState<Node<WorkflowNodeData>[]>([])
   const [initialEdges, setInitialEdges] = useState<Edge[]>([])
+  const [opNoPairs, setOpNoPairs] = useState<{ op: Operacao; no: No }[] | null>(null)
+  const [canvasState, setCanvasState] = useState<CanvasState>({ positions: {}, edges: [] })
 
   const nodesRef = useRef<Node<WorkflowNodeData>[]>([])
   const edgesRef = useRef<Edge[]>([])
@@ -87,7 +89,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
         setFluxo(draftFluxo)
         setNome(draftName)
-        setInitialNodes([])
+        setCanvasState({ positions: {}, edges: [] })
+        setOpNoPairs([])
         setInitialEdges([])
         nodesRef.current = []
         edgesRef.current = []
@@ -98,83 +101,100 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
       const f = await getFluxo(id).catch(() => null)
       if (!f) { router.push('/workflows'); return }
 
-      setFluxo(f)
-      setNome(f.nome)
-
       const operacoes = f.operacoes ?? []
       const nos = await Promise.all(operacoes.map(op => getNo(op.noId).catch(() => null)))
+      const pairs = operacoes
+        .map((op, i) => ({ op, no: nos[i] }))
+        .filter((p): p is { op: Operacao; no: No } => p.no != null)
 
       const canvasRaw = typeof window !== 'undefined' ? localStorage.getItem(CANVAS_KEY(id)) : null
       const canvas: CanvasState = canvasRaw ? JSON.parse(canvasRaw) : { positions: {}, edges: [] }
 
-      const builtNodes: Node<WorkflowNodeData>[] = []
-      const initialNoIds = new Set<number>()
-
-      for (let i = 0; i < operacoes.length; i++) {
-        const op = operacoes[i]
-        const no = nos[i]
-        if (!no) continue
-
-        initialNoIds.add(no.id)
-
-        const pos = canvas.positions[String(no.id)] ?? { x: 100 + i * 260, y: 200 }
-
-        let nodeType = 'reqNode'
-        const data: WorkflowNodeData = {
-          noId: no.id,
-          operacaoId: op.id,
-          tipo: no.tipo,
-          label: '',
-          body: no.body,
-          headers: no.headers,
-          chaveValor: no.chaveValor ?? undefined,
-          funcaoId: no.funcaoId ?? undefined,
-          endpointId: no.endPointId ?? undefined,
-          ordem: op.ordem,
-          erro: op.erro,
-          repetir: op.repetir,
-          maximoRepeticao: op.maximoRepeticao,
-          backoffType: op.backoffType,
-          backoffDelay: op.backoffDelay,
-          backoffMultiplier: op.backoffMultiplier,
-          timeout: op.timeout,
-        }
-
-        if (no.tipo === 1) {
-          nodeType = 'reqNode'
-          const ep = endpoints.find(e => e.id === no.endPointId)
-          const integ = ep ? integracoes.find(a => a.id === ep.integracaoId) : null
-          data.integracaoId = ep?.integracaoId
-          data.verbo = ep?.verbo
-          data.integracaoNome = integ?.nome
-          data.recurso = ep?.recurso
-          data.label = ep?.descricao ?? ep?.recurso ?? `No ${no.id}`
-        } else if (no.tipo === 2) {
-          nodeType = 'funcaoNode'
-          const fn = funcoes.find(f => f.id === no.funcaoId)
-          data.funcaoNome = fn?.nome
-          data.label = fn?.nome ?? `Função ${no.id}`
-        } else if (no.tipo === 3) {
-          nodeType = 'storageNode'
-          data.label = 'Salvar Storage'
-        } else if (no.tipo === 4) {
-          nodeType = 'storageNode'
-          data.label = 'Pegar Storage'
-        }
-
-        builtNodes.push({ id: String(no.id), type: nodeType, position: pos, data })
-      }
-
-      initialNoIdsRef.current = initialNoIds
-      setInitialNodes(builtNodes)
-      setInitialEdges(canvas.edges)
-      nodesRef.current = builtNodes
+      initialNoIdsRef.current = new Set(pairs.map(p => p.no.id))
       edgesRef.current = canvas.edges
+      setCanvasState(canvas)
+      setInitialEdges(canvas.edges)
+      setOpNoPairs(pairs)
+      setNome(f.nome)
+      setFluxo(f)
     }
 
     load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isDraft])
+
+  // Build React Flow nodes once raw data is fetched. Kept separate from the fetch so it
+  // re-runs when integrações/endpoints/funções finish loading and the labels can resolve.
+  useEffect(() => {
+    if (!opNoPairs) return
+
+    const ordered = [...opNoPairs].sort((a, b) => a.op.ordem - b.op.ordem)
+
+    const builtNodes: Node<WorkflowNodeData>[] = ordered.map(({ op, no }, i) => {
+      const pos = canvasState.positions[String(no.id)] ?? { x: 100 + i * 260, y: 200 }
+
+      let nodeType = 'reqNode'
+      const data: WorkflowNodeData = {
+        noId: no.id,
+        operacaoId: op.id,
+        tipo: no.tipo,
+        label: '',
+        body: no.body,
+        headers: no.headers,
+        chaveValor: no.chaveValor ?? undefined,
+        funcaoId: no.funcaoId ?? undefined,
+        endpointId: no.endPointId ?? undefined,
+        ordem: op.ordem,
+        erro: op.erro,
+        repetir: op.repetir,
+        maximoRepeticao: op.maximoRepeticao,
+        backoffType: op.backoffType,
+        backoffDelay: op.backoffDelay,
+        backoffMultiplier: op.backoffMultiplier,
+        timeout: op.timeout,
+      }
+
+      if (no.tipo === 1) {
+        nodeType = 'reqNode'
+        const ep = endpoints.find(e => e.id === no.endPointId)
+        const integ = ep ? integracoes.find(a => a.id === ep.integracaoId) : null
+        data.integracaoId = ep?.integracaoId
+        data.verbo = ep?.verbo
+        data.integracaoNome = integ?.nome
+        data.recurso = ep?.recurso
+        data.label = ep?.descricao ?? ep?.recurso ?? `No ${no.id}`
+      } else if (no.tipo === 2) {
+        nodeType = 'funcaoNode'
+        const fn = funcoes.find(f => f.id === no.funcaoId)
+        data.funcaoNome = fn?.nome
+        data.label = fn?.nome ?? `Função ${no.id}`
+      } else if (no.tipo === 3) {
+        nodeType = 'storageNode'
+        data.label = 'Salvar Storage'
+      } else if (no.tipo === 4) {
+        nodeType = 'storageNode'
+        data.label = 'Pegar Storage'
+      }
+
+      return { id: String(no.id), type: nodeType, position: pos, data }
+    })
+
+    setInitialNodes(builtNodes)
+    nodesRef.current = builtNodes
+
+    // DB-created flows have no saved canvas edges; derive a sequential chain from `ordem`
+    // so the implied data flow (each operação feeds the next) is shown.
+    if (canvasState.edges.length === 0 && ordered.length > 1) {
+      const derived: Edge[] = []
+      for (let i = 0; i < ordered.length - 1; i++) {
+        const source = String(ordered[i].no.id)
+        const target = String(ordered[i + 1].no.id)
+        derived.push({ id: `e-${source}-${target}`, source, target, animated: true })
+      }
+      setInitialEdges(derived)
+      edgesRef.current = derived
+    }
+  }, [opNoPairs, canvasState, endpoints, integracoes, funcoes])
 
   const handleSave = useCallback(async () => {
     if (!fluxo) return
@@ -364,9 +384,23 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
       <div className="flex flex-1 overflow-hidden">
         {executionResult && (
           <div className="absolute right-4 top-14 z-20 max-w-md border border-border bg-white/95 p-3 text-xs shadow-sm">
-            <p className="font-medium">
-              Execução {executionResult.sucesso === false ? 'finalizada com erro' : 'finalizada'}
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-medium">
+                Execução {executionResult.sucesso === false ? 'finalizada com erro' : 'finalizada'}
+                {executionResult.status != null && (
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    (HTTP {executionResult.status})
+                  </span>
+                )}
+              </p>
+              <button
+                onClick={() => setExecutionResult(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Fechar"
+              >
+                <XIcon size={12} />
+              </button>
+            </div>
             {executionResult.retorno?.map((item, index) => (
               <p
                 key={`${item.mensagem}-${index}`}
@@ -375,11 +409,20 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
                 {item.mensagem}
               </p>
             ))}
-            {executionResult.respostaBody && (
-              <pre className="mt-2 max-h-40 overflow-auto bg-muted p-2 font-mono text-[11px]">
-                {executionResult.respostaBody}
-              </pre>
-            )}
+            {(() => {
+              const body = executionResult.respostaBody
+                ?? (executionResult.resposta != null
+                  ? JSON.stringify(executionResult.resposta, null, 2)
+                  : null)
+
+              return body ? (
+                <pre className="mt-2 max-h-60 overflow-auto bg-muted p-2 font-mono text-[11px] whitespace-pre-wrap break-all">
+                  {body}
+                </pre>
+              ) : (
+                <p className="mt-1 text-muted-foreground">Sem corpo de resposta.</p>
+              )
+            })()}
           </div>
         )}
 

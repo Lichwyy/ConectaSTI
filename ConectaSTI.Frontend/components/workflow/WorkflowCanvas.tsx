@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -49,9 +49,23 @@ function FlowContent({
   onNodeSelect,
   getTempId,
 }: WorkflowCanvasProps) {
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, fitView } = useReactFlow()
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+
+  // initialNodes/Edges arrive async (after the fluxo + nós are fetched). useNodesState
+  // only reads them on first mount, so sync them in when they load. Guarded on length so
+  // a freshly dragged draft canvas is never wiped by an empty initial set.
+  useEffect(() => {
+    if (initialNodes.length === 0) return
+    setNodes(initialNodes)
+    requestAnimationFrame(() => fitView({ padding: 0.4 }))
+  }, [initialNodes, setNodes, fitView])
+
+  useEffect(() => {
+    if (initialEdges.length === 0) return
+    setEdges(initialEdges)
+  }, [initialEdges, setEdges])
 
   const onConnect = useCallback(
     (params: Connection) => {
