@@ -32,7 +32,7 @@ export function redirectToBifrost(): void {
   const responseType = process.env.NEXT_PUBLIC_BIFROST_RESPONSE_TYPE ?? "token"
   const url = `${bifrost}/authorize?client_id=${encodeURIComponent(
     clientId,
-  )}&redirect_url=${encodeURIComponent(redirect)}&response_type=${encodeURIComponent(responseType)}`
+  )}&redirect_uri=${encodeURIComponent(redirect)}&response_type=${encodeURIComponent(responseType)}`
 
   window.location.href = url
 }

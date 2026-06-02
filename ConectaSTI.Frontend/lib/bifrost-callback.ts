@@ -8,6 +8,16 @@ function redirectToApp(request: NextRequest) {
   return new URL(DEFAULT_REDIRECT_PATH, request.url)
 }
 
+function shouldUseSecureCookie(request: NextRequest) {
+  const configured = process.env.AUTH_COOKIE_SECURE?.trim().toLowerCase()
+
+  if (configured) {
+    return configured === "true" || configured === "1" || configured === "yes"
+  }
+
+  return request.nextUrl.protocol === "https:"
+}
+
 export async function handleBifrostCallback(request: NextRequest) {
   const token = getBifrostToken(request.nextUrl.searchParams)
   const redirectUrl = redirectToApp(request)
@@ -29,7 +39,7 @@ export async function handleBifrostCallback(request: NextRequest) {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: shouldUseSecureCookie(request),
       ...(maxAge ? { maxAge } : {}),
     })
 

@@ -1,0 +1,146 @@
+services:
+  conectasti-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ConectaSTI
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "1234"
+    ports:
+      - "5433:5432"
+    volumes:
+      - conectasti_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ConectaSTI"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  bifrostauth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: authsti
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "1234"
+    ports:
+      - "5432:5432"
+    volumes:
+      - bifrostauth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d authsti"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  bifrostauth:
+    build:
+      context: ../BifrostAuth
+      dockerfile: Dockerfile
+    image: conectasti-bifrostauth:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=bifrostauth-db;Port=5432;Database=authsti;Username=postgres;Password=1234
+      Jwt__Key: "){2H:t@WJ[h(Td+w>69%V]7Hj<:5-@m!Yi5q9?-w[}S"
+      Jwt__Issuer: BifrostAuth
+      Jwt__Audience: BifrostAuth
+      Migrations__RunOnStartup: "true"
+      NHibernate__SchemaUpdateEnabled: "false"
+      NHibernate__ShowSql: "false"
+      NHibernate__FormatSql: "false"
+      NHibernate__AdoNetBatchSize: "20"
+      Seed__Admin__Enabled: "true"
+      Seed__Admin__Login: admin
+      Seed__Admin__Email: admin@bifrost.local
+      Seed__Admin__Password: admin123
+      Seed__Application__Enabled: "true"
+      Seed__Application__Name: ConectaSTI
+      Seed__Application__ClientId: conecta-sti
+      Seed__Application__ClientSecret: conecta-sti-secret
+      Seed__Application__RedirectUrl: http://localhost:3000/callback
+    ports:
+      - "8080:8080"
+    depends_on:
+      bifrostauth-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  conectasti-api:
+    build:
+      context: ./ConectaSTI.Backend
+      dockerfile: ConectaSTI/ConectaSTI.Api/Dockerfile
+    image: conectasti-api:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Server=conectasti-db;Port=5432;Database=ConectaSTI;User Id=postgres;Password=1234
+      MigrateDb: "true"
+      BifrostAuth__JwtKey: "){2H:t@WJ[h(Td+w>69%V]7Hj<:5-@m!Yi5q9?-w[}S"
+      BifrostAuth__Issuer: BifrostAuth
+      BifrostAuth__ClientId: conecta-sti
+    ports:
+      - "5055:8080"
+    depends_on:
+      conectasti-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  conectasti-rotas:
+    build:
+      context: ./ConectaSTI.Backend
+      dockerfile: ConectaSTI/ConectaSTI.Rotas/Dockerfile
+    image: conectasti-rotas:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Default: Server=conectasti-db;Port=5432;Database=ConectaSTI;User Id=postgres;Password=1234
+      ExecutionEngine: http://conectasti-api:8080
+      MigrateDb: "false"
+    ports:
+      - "5184:8080"
+    depends_on:
+      conectasti-db:
+        condition: service_healthy
+      conectasti-api:
+        condition: service_started
+    restart: unless-stopped
+
+  conectasti-frontend:
+    build:
+      context: ./ConectaSTI.Frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://conectasti-api:8080
+        NEXT_PUBLIC_BIFROST_URL: http://localhost:8080
+        NEXT_PUBLIC_CLIENT_ID: conecta-sti
+        NEXT_PUBLIC_REDIRECT_URL: http://localhost:3000/callback
+        NEXT_PUBLIC_BIFROST_RESPONSE_TYPE: token
+        NEXT_PUBLIC_USE_MOCK: "false"
+        JWT_SECRET: "){2H:t@WJ[h(Td+w>69%V]7Hj<:5-@m!Yi5q9?-w[}S"
+    image: conectasti-frontend:local
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      AUTH_COOKIE_SECURE: "false"
+      NEXT_PUBLIC_API_URL: http://conectasti-api:8080
+      NEXT_PUBLIC_BIFROST_URL: http://localhost:8080
+      NEXT_PUBLIC_CLIENT_ID: conecta-sti
+      NEXT_PUBLIC_REDIRECT_URL: http://localhost:3000/callback
+      NEXT_PUBLIC_BIFROST_RESPONSE_TYPE: token
+      NEXT_PUBLIC_USE_MOCK: "false"
+      JWT_SECRET: "){2H:t@WJ[h(Td+w>69%V]7Hj<:5-@m!Yi5q9?-w[}S"
+    ports:
+      - "3000:3000"
+    depends_on:
+      conectasti-api:
+        condition: service_started
+      bifrostauth:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  conectasti_db_data:
+  bifrostauth_db_data:

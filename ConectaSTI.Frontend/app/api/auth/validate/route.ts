@@ -7,6 +7,16 @@ type ValidateRequestBody = {
   token?: string
 }
 
+function shouldUseSecureCookie(request: NextRequest) {
+  const configured = process.env.AUTH_COOKIE_SECURE?.trim().toLowerCase()
+
+  if (configured) {
+    return configured === "true" || configured === "1" || configured === "yes"
+  }
+
+  return request.nextUrl.protocol === "https:"
+}
+
 async function getRequestToken(request: NextRequest): Promise<string | null> {
   try {
     const body = (await request.json()) as ValidateRequestBody
@@ -39,7 +49,7 @@ export async function POST(request: NextRequest) {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure: shouldUseSecureCookie(request),
         ...(maxAge ? { maxAge } : {}),
       })
     }

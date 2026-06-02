@@ -46,12 +46,12 @@ namespace FGB.Api.Extensions
 
             services.AddAuthorization(options =>
             {
-                options.AddPolicy("SuperUser", policy => policy.RequireRole("superuser"));
+                options.AddPolicy("SuperUser", policy => policy.RequireRole("superuser", "SUPERUSER"));
 
                 options.AddPolicy("admin", policy =>
                 {
                     // policy.RequireClaim("permission", "admin"); // somente teste
-                    policy.RequireRole("admin");
+                    policy.RequireRole("admin", "ADMIN");
                 });
             });
 
