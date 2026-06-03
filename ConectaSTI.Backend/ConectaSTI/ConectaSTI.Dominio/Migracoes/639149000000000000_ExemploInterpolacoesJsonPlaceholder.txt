@@ -1,0 +1,409 @@
+INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+SELECT current_timestamp, current_timestamp, 'https://jsonplaceholder.typicode.com', NULL, 'Exemplo - JSONPlaceholder Interpolacao', 'API publica usada para validar interpolacao em URL, headers e body.'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM integracao
+    WHERE nome = 'Exemplo - JSONPlaceholder Interpolacao'
+);
+
+INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+SELECT current_timestamp, current_timestamp, 'users/1', i.id, 1, 'Busca usuario fixo para alimentar interpolacao de URL.', NULL
+FROM integracao i
+WHERE i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM end_point e
+      WHERE e.integracao_id = i.id
+        AND e.recurso = 'users/1'
+        AND e.verbo = 1
+  );
+
+INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+SELECT current_timestamp, current_timestamp, 'posts?userId={{id}}', i.id, 1, 'Usa {{id}} do usuario anterior na query string.', NULL
+FROM integracao i
+WHERE i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM end_point e
+      WHERE e.integracao_id = i.id
+        AND e.recurso = 'posts?userId={{id}}'
+        AND e.verbo = 1
+  );
+
+INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+SELECT current_timestamp, current_timestamp, 'posts', i.id, 2, 'Recebe body e headers interpolados a partir da funcao anterior.', NULL
+FROM integracao i
+WHERE i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM end_point e
+      WHERE e.integracao_id = i.id
+        AND e.recurso = 'posts'
+        AND e.verbo = 2
+  );
+
+INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Funcao Montar Payload Interpolacao',
+    'const posts = Array.isArray($input) ? $input : [];
+const first = posts[0] || {};
+const response = {};
+
+response.user = {
+    id: first.userId || null
+};
+
+response.firstPost = {
+    id: first.id || null,
+    title: first.title || ""
+};
+
+response.tags = [
+    {
+        value: first.title || "sem-titulo"
+    }
+];
+
+response.audit = {
+    generatedAt: new Date().toISOString(),
+    source: "jsonplaceholder"
+};
+
+return response;',
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM funcao
+    WHERE nome = 'Exemplo - Funcao Montar Payload Interpolacao'
+);
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, e.id, NULL, NULL, 0
+FROM end_point e
+JOIN integracao i ON i.id = e.integracao_id
+WHERE i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+  AND e.recurso = 'users/1'
+  AND e.verbo = 1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 1
+        AND n.end_point_id = e.id
+        AND n.funcao_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, e.id, NULL, NULL, 0
+FROM end_point e
+JOIN integracao i ON i.id = e.integracao_id
+WHERE i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+  AND e.recurso = 'posts?userId={{id}}'
+  AND e.verbo = 1
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 1
+        AND n.end_point_id = e.id
+        AND n.funcao_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT current_timestamp, current_timestamp, 2, NULL, NULL, f.id, NULL, NULL, NULL, 0
+FROM funcao f
+WHERE f.nome = 'Exemplo - Funcao Montar Payload Interpolacao'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 2
+        AND n.funcao_id = f.id
+        AND n.end_point_id IS NULL
+        AND n.chave_valor IS NULL
+  );
+
+INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    1,
+    '{
+  "title": "{{firstPost.title}}",
+  "body": "Post criado pela seed usando tag {{tags[0].value}}",
+  "userId": {{user.id}},
+  "source": "{{audit.source}}"
+}',
+    '{
+  "x-seed-user-id": "{{user.id}}",
+  "x-seed-first-title": "{{firstPost.title}}",
+  "x-seed-tag": "{{tags[0].value}}"
+}',
+    NULL,
+    e.id,
+    NULL,
+    NULL,
+    0
+FROM end_point e
+JOIN integracao i ON i.id = e.integracao_id
+WHERE i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+  AND e.recurso = 'posts'
+  AND e.verbo = 2
+  AND NOT EXISTS (
+      SELECT 1
+      FROM no n
+      WHERE n.tipo = 1
+        AND n.end_point_id = e.id
+        AND n.body LIKE '%{{firstPost.title}}%'
+        AND n.headers LIKE '%{{tags[0].value}}%'
+  );
+
+INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+SELECT current_timestamp, current_timestamp, 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM fluxo
+    WHERE nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+);
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    1,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN end_point e ON e.id = n.end_point_id
+        JOIN integracao i ON i.id = e.integracao_id
+        WHERE n.tipo = 1
+          AND i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+          AND e.recurso = 'users/1'
+          AND e.verbo = 1
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 1
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    2,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN end_point e ON e.id = n.end_point_id
+        JOIN integracao i ON i.id = e.integracao_id
+        WHERE n.tipo = 1
+          AND i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+          AND e.recurso = 'posts?userId={{id}}'
+          AND e.verbo = 1
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 2
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    3,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN funcao fn ON fn.id = n.funcao_id
+        WHERE n.tipo = 2
+          AND fn.nome = 'Exemplo - Funcao Montar Payload Interpolacao'
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    true,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 3
+  );
+
+INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    4,
+    (
+        SELECT n.id
+        FROM no n
+        JOIN end_point e ON e.id = n.end_point_id
+        JOIN integracao i ON i.id = e.integracao_id
+        WHERE n.tipo = 1
+          AND i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+          AND e.recurso = 'posts'
+          AND e.verbo = 2
+        LIMIT 1
+    ),
+    f.id,
+    false,
+    false,
+    1,
+    0,
+    1,
+    0,
+    1.0,
+    30000
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM operacao o
+      WHERE o.fluxo_id = f.id
+        AND o.ordem = 4
+  );
+
+INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    f.id,
+    f.nome,
+    1,
+    CAST(json_build_object(
+        'Operacoes',
+        json_build_array(
+            json_build_object('Ordem', 1, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN end_point e ON e.id = n.end_point_id
+                JOIN integracao i ON i.id = e.integracao_id
+                WHERE n.tipo = 1
+                  AND i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+                  AND e.recurso = 'users/1'
+                  AND e.verbo = 1
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN end_point e ON e.id = n.end_point_id
+                JOIN integracao i ON i.id = e.integracao_id
+                WHERE n.tipo = 1
+                  AND i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+                  AND e.recurso = 'posts?userId={{id}}'
+                  AND e.verbo = 1
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 3, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN funcao fn ON fn.id = n.funcao_id
+                WHERE n.tipo = 2
+                  AND fn.nome = 'Exemplo - Funcao Montar Payload Interpolacao'
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 4, 'NoId', (
+                SELECT n.id
+                FROM no n
+                JOIN end_point e ON e.id = n.end_point_id
+                JOIN integracao i ON i.id = e.integracao_id
+                WHERE n.tipo = 1
+                  AND i.nome = 'Exemplo - JSONPlaceholder Interpolacao'
+                  AND e.recurso = 'posts'
+                  AND e.verbo = 2
+                LIMIT 1
+            ), 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )
+    ) AS text),
+    true
+FROM fluxo f
+WHERE f.nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM fluxo_versionado fv
+      WHERE fv.fluxo_id = f.id
+        AND fv.versao = 1
+  );
+
+INSERT INTO rota (
+    criadoem,
+    ultimaalteracao,
+    nome,
+    descricao,
+    senha_acesso,
+    usar_fluxo_mais_atual,
+    rate_limit,
+    rate_limit_requests,
+    rate_limit_interval,
+    idempotencia,
+    json_schema_resp,
+    json_schema_req,
+    pipeline_versao_id,
+    pipeline_versao,
+    caminho,
+    metodo
+)
+SELECT
+    current_timestamp,
+    current_timestamp,
+    'Exemplo - Rota Interpolacoes JSONPlaceholder',
+    'Valida interpolacao em URL de GET, headers e body de POST usando JSONPlaceholder.',
+    NULL,
+    true,
+    false,
+    0,
+    60,
+    false,
+    NULL,
+    NULL,
+    fv.id,
+    f.nome || '_1',
+    'examples/interpolation/jsonplaceholder',
+    1
+FROM fluxo f
+JOIN fluxo_versionado fv ON fv.fluxo_id = f.id AND fv.versao = 1
+WHERE f.nome = 'Exemplo - Fluxo Interpolacoes JSONPlaceholder'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM rota r
+      WHERE r.metodo = 1
+        AND r.caminho = 'examples/interpolation/jsonplaceholder'
+  );

@@ -39,6 +39,7 @@ interface WorkflowCanvasProps {
   onEdgesChange?: (edges: Edge[]) => void
   onNodeSelect?: (node: Node<WorkflowNodeData> | null) => void
   getTempId: () => number
+  syncKey?: number
 }
 
 function FlowContent({
@@ -48,6 +49,7 @@ function FlowContent({
   onEdgesChange: notifyEdges,
   onNodeSelect,
   getTempId,
+  syncKey = 0,
 }: WorkflowCanvasProps) {
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>(initialNodes)
@@ -57,15 +59,17 @@ function FlowContent({
   // only reads them on first mount, so sync them in when they load. Guarded on length so
   // a freshly dragged draft canvas is never wiped by an empty initial set.
   useEffect(() => {
-    if (initialNodes.length === 0) return
+    if (initialNodes.length === 0 && syncKey === 0) return
     setNodes(initialNodes)
-    requestAnimationFrame(() => fitView({ padding: 0.4 }))
-  }, [initialNodes, setNodes, fitView])
+    if (initialNodes.length > 0) {
+      requestAnimationFrame(() => fitView({ padding: 0.4 }))
+    }
+  }, [initialNodes, setNodes, fitView, syncKey])
 
   useEffect(() => {
-    if (initialEdges.length === 0) return
+    if (initialEdges.length === 0 && syncKey === 0) return
     setEdges(initialEdges)
-  }, [initialEdges, setEdges])
+  }, [initialEdges, setEdges, syncKey])
 
   const onConnect = useCallback(
     (params: Connection) => {

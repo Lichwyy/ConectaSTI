@@ -6,5 +6,5 @@ namespace ConectaSTI.Dominio.Interfaces;
 
 public interface IRequestExecutor
 {
-    public RespostaHttp<object> EnviarRequisicao(No nozinho, CancellationToken cancellationToken = default);
+    public RespostaHttp<object> EnviarRequisicao(No nozinho, object dadoAnterior = null, CancellationToken cancellationToken = default);
 }

@@ -294,20 +294,20 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
 
                 if (!string.IsNullOrWhiteSpace(no.Headers))
                 {
-                    no.Headers = InterpolarVariaveis(no.Headers, dadoAnterior);
+                    no.Headers = JsonPlaceholderInterpolator.Interpolar(no.Headers, dadoAnterior);
                 }
 
                 if (!string.IsNullOrWhiteSpace(no.Body) && no.Body.Contains("{{"))
                 {
-                    no.Body = InterpolarVariaveis(no.Body, dadoAnterior);
+                    no.Body = JsonPlaceholderInterpolator.Interpolar(no.Body, dadoAnterior);
                 }
 
                 if (usarDadoAnterior)
                 {
-                    no.Body = dadoAnterior?.ToString();
+                    no.Body = SerializeSafe(dadoAnterior);
                 }
 
-                resposta = _requestExecutor.EnviarRequisicao(no, cancellationToken);
+                resposta = _requestExecutor.EnviarRequisicao(no, dadoAnterior, cancellationToken);
 
                 no.Headers = headerOriginal;
                 no.Body = bodyOriginal;
@@ -327,7 +327,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
                 resposta = _functionExecutor.Executar(funcao, dadoAnterior, cancellationToken);
                 break;
             case TipoNo.SalvarStorage:
-                no.Body = dadoAnterior?.ToString();
+                no.Body = SerializeSafe(dadoAnterior);
                 resposta = _storageExecutor.Salvar(no, cancellationToken);
                 no.Body = bodyOriginal;
                 break;
@@ -523,39 +523,4 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         public DateTime FinalizadoEm { get; }
     }
 
-    private string InterpolarVariaveis(string textoAlvo, object dadoAnterior)
-    {
-        if (string.IsNullOrWhiteSpace(textoAlvo) || dadoAnterior == null)
-            return textoAlvo;
-
-        try
-        {
-            string jsonString = dadoAnterior is string str ? str : SerializeSafe(dadoAnterior);
-            using JsonDocument document = JsonDocument.Parse(jsonString);
-
-            if (document.RootElement.ValueKind == JsonValueKind.Object)
-            {
-                string textoResultante = textoAlvo;
-
-                foreach (var propriedade in document.RootElement.EnumerateObject())
-                {
-                    string marcador = "{{" + propriedade.Name + "}}";
-                    if (textoResultante.Contains(marcador))
-                    {
-                        string valorParaSubstituir = propriedade.Value.ValueKind == JsonValueKind.String
-                            ? propriedade.Value.GetString()
-                            : propriedade.Value.GetRawText();
-
-                        textoResultante = textoResultante.Replace(marcador, valorParaSubstituir);
-                    }
-                }
-                return textoResultante;
-            }
-        }
-        catch
-        {
-        }
-
-        return textoAlvo;
-    }
 }

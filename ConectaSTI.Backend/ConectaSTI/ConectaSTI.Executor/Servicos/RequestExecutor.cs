@@ -25,7 +25,7 @@ namespace ConectaSTI.Executor.Servicos
             _converter = converter;
         }
         
-        public RespostaHttp<object> EnviarRequisicao(No nozinho, CancellationToken cancellationToken = default)
+        public RespostaHttp<object> EnviarRequisicao(No nozinho, object dadoAnterior = null, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var respostaRequisicao = new RespostaHttp<object>();
@@ -55,6 +55,7 @@ namespace ConectaSTI.Executor.Servicos
             {
                 string baseURL = integracaozinha.Url?.TrimEnd('/');
                 string recurso = endpointzinho.Recurso?.TrimStart('/');
+                recurso = JsonPlaceholderInterpolator.Interpolar(recurso, dadoAnterior);
                 
                 request.Url = $"{baseURL}/{recurso}";
             }

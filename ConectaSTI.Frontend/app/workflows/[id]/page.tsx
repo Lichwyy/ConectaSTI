@@ -23,6 +23,7 @@ import {
   CircleNotchIcon,
   XIcon,
   PlayIcon,
+  TrashIcon,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -42,6 +43,7 @@ function operacaoPayload(
     noId,
     fluxoId,
     repetir: data.repetir ?? maximoRepeticao > 0,
+    usarDadosAnterior: data.usarDadosAnterior ?? false,
     erro: data.erro,
     maximoRepeticao,
     backoffType: data.backoffType,
@@ -68,6 +70,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
   const [executing, setExecuting] = useState(false)
   const [executionResult, setExecutionResult] = useState<FluxoExecutionResult | null>(null)
   const [selectedNode, setSelectedNode] = useState<Node<WorkflowNodeData> | null>(null)
+  const [canvasSyncKey, setCanvasSyncKey] = useState(0)
 
   const [initialNodes, setInitialNodes] = useState<Node<WorkflowNodeData>[]>([])
   const [initialEdges, setInitialEdges] = useState<Edge[]>([])
@@ -147,6 +150,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         ordem: op.ordem,
         erro: op.erro,
         repetir: op.repetir,
+        usarDadosAnterior: op.usarDadosAnterior,
         maximoRepeticao: op.maximoRepeticao,
         backoffType: op.backoffType,
         backoffDelay: op.backoffDelay,
@@ -319,6 +323,18 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
     edgesRef.current = edges
   }, [])
 
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    const nextNodes = nodesRef.current.filter(n => n.id !== nodeId)
+    const nextEdges = edgesRef.current.filter(e => e.source !== nodeId && e.target !== nodeId)
+
+    nodesRef.current = nextNodes
+    edgesRef.current = nextEdges
+    setInitialNodes(nextNodes)
+    setInitialEdges(nextEdges)
+    setSelectedNode(null)
+    setCanvasSyncKey(key => key + 1)
+  }, [])
+
   if (!fluxo) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -440,6 +456,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
             onEdgesChange={handleEdgesChange}
             onNodeSelect={setSelectedNode}
             getTempId={getTempId}
+            syncKey={canvasSyncKey}
           />
         </div>
 
@@ -457,6 +474,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
                 <NodeDetailPanel
                   node={selectedNode}
                   onClose={() => setSelectedNode(null)}
+                  onDelete={() => handleDeleteNode(selectedNode.id)}
                   onUpdate={(updated) => {
                     nodesRef.current = nodesRef.current.map(n =>
                       n.id === updated.id ? updated : n
@@ -476,13 +494,16 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 function NodeDetailPanel({
   node,
   onClose,
+  onDelete,
   onUpdate,
 }: {
   node: Node<WorkflowNodeData>
   onClose: () => void
+  onDelete: () => void
   onUpdate: (node: Node<WorkflowNodeData>) => void
 }) {
   const d = node.data
+  const requestAllowsBody = d.tipo === 1 && (d.verbo == null || (d.verbo !== 1 && d.verbo !== 4))
   const [erro, setErro] = useState<TipoErro>(d.erro)
   const [maximoRepeticao, setMaximoRepeticao] = useState(d.maximoRepeticao ?? 0)
   const [timeout, setTimeout_] = useState(d.timeout ?? 30000)
@@ -490,6 +511,9 @@ function NodeDetailPanel({
   const [backoffDelay, setBackoffDelay] = useState(d.backoffDelay ?? 0)
   const [backoffMultiplier, setBackoffMultiplier] = useState(d.backoffMultiplier ?? 1)
   const [chaveValor, setChaveValor] = useState(d.chaveValor ?? '')
+  const [body, setBody] = useState(d.body ?? '')
+  const [headers, setHeaders] = useState(d.headers ?? '')
+  const [usarDadosAnterior, setUsarDadosAnterior] = useState(Boolean(d.usarDadosAnterior))
 
   function apply() {
     const updated: Node<WorkflowNodeData> = {
@@ -503,6 +527,9 @@ function NodeDetailPanel({
         backoffType,
         backoffDelay,
         backoffMultiplier,
+        usarDadosAnterior: requestAllowsBody ? usarDadosAnterior : false,
+        body: requestAllowsBody ? (body.trim() || null) : null,
+        headers: d.tipo === 1 ? (headers.trim() || null) : d.headers,
         chaveValor: (d.tipo === 3 || d.tipo === 4) ? chaveValor : d.chaveValor,
       },
     }
@@ -541,6 +568,58 @@ function NodeDetailPanel({
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">API</p>
               <p className="text-xs">{d.integracaoNome ?? '—'}</p>
+            </div>
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Entrada da requisição</p>
+
+              {requestAllowsBody ? (
+                <>
+                  <label className="flex items-start gap-2 border border-border bg-muted/20 p-2">
+                    <input
+                      type="checkbox"
+                      checked={usarDadosAnterior}
+                      onChange={e => setUsarDadosAnterior(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs">
+                      <span className="block font-medium">Usar resposta anterior como body inteiro</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        Quando marcado, o body abaixo é ignorado e o resultado do nó anterior vira o corpo da requisição.
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Body JSON</label>
+                    <textarea
+                      value={body}
+                      onChange={e => setBody(e.target.value)}
+                      disabled={usarDadosAnterior}
+                      placeholder={'{\n  "clienteId": "{{id}}",\n  "email": "{{data.email}}"\n}'}
+                      rows={8}
+                      className="w-full border border-input bg-background px-2 py-2 text-[11px] font-mono resize-y outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">
+                  Este método não envia body. Use placeholders no recurso do endpoint ou nos headers para consumir dados anteriores.
+                </p>
+              )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Headers JSON</label>
+                <textarea
+                  value={headers}
+                  onChange={e => setHeaders(e.target.value)}
+                  placeholder={'{\n  "x-request-id": "{{requestId}}"\n}'}
+                  rows={5}
+                  className="w-full border border-input bg-background px-2 py-2 text-[11px] font-mono resize-y outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Placeholders aceitos: {'{{id}}'}, {'{{data.id}}'}, {'{{items[0].email}}'}.
+              </p>
             </div>
           </>
         )}
@@ -649,9 +728,15 @@ function NodeDetailPanel({
           </div>
         )}
 
-        <Button size="sm" className="w-full rounded-none h-7 text-xs" onClick={apply}>
-          Aplicar
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" className="rounded-none h-7 text-xs" onClick={apply}>
+            Aplicar
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-none h-7 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={onDelete}>
+            <TrashIcon size={12} />
+            Remover
+          </Button>
+        </div>
       </div>
     </>
   )

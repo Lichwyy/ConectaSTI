@@ -20,6 +20,7 @@ export interface EndPoint {
   recurso: string
   integracaoId: number
   verbo: VerboHttp
+  token?: string | null
   descricao?: string | null
   criadoEm?: string | null
 }
@@ -40,6 +41,7 @@ export interface No {
   funcaoId?: number | null
   endPointId?: number | null
   chaveValor?: string | null
+  fluxoId?: number | null
 }
 
 export interface Operacao {
@@ -48,6 +50,7 @@ export interface Operacao {
   noId: number
   fluxoId: number
   repetir?: boolean
+  usarDadosAnterior?: boolean
   erro: TipoErro
   maximoRepeticao?: number
   backoffType: BackoffType
@@ -85,6 +88,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   ordem?: number
   erro: TipoErro
   repetir?: boolean
+  usarDadosAnterior?: boolean
   maximoRepeticao?: number
   backoffType: BackoffType
   backoffDelay?: number
@@ -137,9 +141,10 @@ export const METHOD_NODE_COLORS: Record<HttpMethod, string> = {
   PATCH:  'border-l-violet-500',
 }
 
-export const DEFAULT_OPERACAO: Pick<WorkflowNodeData, 'erro' | 'repetir' | 'backoffType' | 'maximoRepeticao' | 'backoffDelay' | 'backoffMultiplier' | 'timeout'> = {
+export const DEFAULT_OPERACAO: Pick<WorkflowNodeData, 'erro' | 'repetir' | 'usarDadosAnterior' | 'backoffType' | 'maximoRepeticao' | 'backoffDelay' | 'backoffMultiplier' | 'timeout'> = {
   erro: 1,
   repetir: false,
+  usarDadosAnterior: false,
   backoffType: 1,
   maximoRepeticao: 0,
   backoffDelay: 0,
