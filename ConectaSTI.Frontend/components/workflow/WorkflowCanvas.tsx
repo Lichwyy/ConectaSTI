@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -9,6 +9,8 @@ import {
   MiniMap,
   BackgroundVariant,
   addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
   useNodesState,
   useEdgesState,
   useReactFlow,
@@ -32,6 +34,31 @@ const nodeTypes = {
   storageNode: StorageNode,
 }
 
+function createsCycle(source: string, target: string, edges: Edge[]) {
+  if (source === target) return true
+
+  const outgoing = new Map<string, string[]>()
+  for (const edge of edges) {
+    const targets = outgoing.get(edge.source) ?? []
+    targets.push(edge.target)
+    outgoing.set(edge.source, targets)
+  }
+
+  const stack = [target]
+  const visited = new Set<string>()
+
+  while (stack.length > 0) {
+    const current = stack.pop()
+    if (!current || visited.has(current)) continue
+    if (current === source) return true
+
+    visited.add(current)
+    stack.push(...(outgoing.get(current) ?? []))
+  }
+
+  return false
+}
+
 interface WorkflowCanvasProps {
   initialNodes: Node<WorkflowNodeData>[]
   initialEdges: Edge[]
@@ -52,8 +79,19 @@ function FlowContent({
   syncKey = 0,
 }: WorkflowCanvasProps) {
   const { screenToFlowPosition, fitView } = useReactFlow()
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  const [nodes, setNodes] = useNodesState<Node<WorkflowNodeData>>(initialNodes)
+  const [edges, setEdges] = useEdgesState(initialEdges)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+
+  const displayedEdges = useMemo(() => (
+    edges.map(edge => ({
+      ...edge,
+      selected: edge.id === selectedEdgeId,
+      style: edge.id === selectedEdgeId
+        ? { ...(edge.style ?? {}), strokeWidth: 3, stroke: 'hsl(var(--primary))' }
+        : edge.style,
+    }))
+  ), [edges, selectedEdgeId])
 
   // initialNodes/Edges arrive async (after the fluxo + nós are fetched). useNodesState
   // only reads them on first mount, so sync them in when they load. Guarded on length so
@@ -73,9 +111,22 @@ function FlowContent({
 
   const onConnect = useCallback(
     (params: Connection) => {
+      if (!params.source || !params.target || params.source === params.target) {
+        return
+      }
+
       setEdges(eds => {
-        const next = addEdge({ ...params, animated: true }, eds)
+        const withoutPortConflicts = eds.filter(edge =>
+          edge.source !== params.source && edge.target !== params.target
+        )
+
+        if (createsCycle(params.source!, params.target!, withoutPortConflicts)) {
+          return eds
+        }
+
+        const next = addEdge({ ...params, animated: true }, withoutPortConflicts)
         notifyEdges?.(next)
+        setSelectedEdgeId(null)
         return next
       })
     },
@@ -84,25 +135,50 @@ function FlowContent({
 
   const handleNodesChange: OnNodesChange<Node<WorkflowNodeData>> = useCallback(
     (changes) => {
-      onNodesChange(changes)
       setNodes(nds => {
-        notifyNodes?.(nds as Node<WorkflowNodeData>[])
-        return nds
+        const next = applyNodeChanges(changes, nds)
+        notifyNodes?.(next as Node<WorkflowNodeData>[])
+        return next
+      })
+
+      setEdges(eds => {
+        const removedNodeIds = new Set(changes.filter(change => change.type === 'remove').map(change => change.id))
+        if (removedNodeIds.size === 0) return eds
+
+        const next = eds.filter(edge => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target))
+        notifyEdges?.(next)
+        return next
       })
     },
-    [onNodesChange, setNodes, notifyNodes]
+    [setNodes, setEdges, notifyNodes, notifyEdges]
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes) => {
-      onEdgesChange(changes)
       setEdges(eds => {
-        notifyEdges?.(eds)
-        return eds
+        const next = applyEdgeChanges(changes, eds)
+        notifyEdges?.(next)
+
+        if (selectedEdgeId && !next.some(edge => edge.id === selectedEdgeId)) {
+          setSelectedEdgeId(null)
+        }
+
+        return next
       })
     },
-    [onEdgesChange, setEdges, notifyEdges]
+    [setEdges, notifyEdges, selectedEdgeId]
   )
+
+  const disconnectSelectedEdge = useCallback(() => {
+    if (!selectedEdgeId) return
+
+    setEdges(eds => {
+      const next = eds.filter(edge => edge.id !== selectedEdgeId)
+      notifyEdges?.(next)
+      return next
+    })
+    setSelectedEdgeId(null)
+  }, [selectedEdgeId, setEdges, notifyEdges])
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -150,20 +226,43 @@ function FlowContent({
     <div className="flex-1 h-full w-full">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={displayedEdges}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onDrop={onDrop}
         onDragOver={onDragOver}
         nodeTypes={nodeTypes}
+        onEdgeClick={(_, edge) => setSelectedEdgeId(edge.id)}
+        onEdgeDoubleClick={(_, edge) => {
+          setEdges(eds => {
+            const next = eds.filter(item => item.id !== edge.id)
+            notifyEdges?.(next)
+            return next
+          })
+          setSelectedEdgeId(null)
+        }}
         onNodeClick={(_, node) => onNodeSelect?.(node as Node<WorkflowNodeData>)}
-        onPaneClick={() => onNodeSelect?.(null)}
+        onPaneClick={() => {
+          setSelectedEdgeId(null)
+          onNodeSelect?.(null)
+        }}
         fitView
         fitViewOptions={{ padding: 0.4 }}
         deleteKeyCode="Delete"
         className="bg-transparent"
       >
+        {selectedEdgeId && (
+          <div className="absolute right-3 top-3 z-10 border border-border bg-white px-2 py-1 shadow-sm">
+            <button
+              type="button"
+              onClick={disconnectSelectedEdge}
+              className="text-[11px] font-medium text-destructive hover:underline"
+            >
+              Desconectar ligação
+            </button>
+          </div>
+        )}
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#c8c8c8" />
         <Controls className="!rounded-none !border-border !shadow-none [&>button]:!rounded-none [&>button]:!border-border" />
         <MiniMap

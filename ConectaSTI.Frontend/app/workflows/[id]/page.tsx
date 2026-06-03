@@ -53,6 +53,54 @@ function operacaoPayload(
   }
 }
 
+function orderNodesForExecution(
+  nodes: Node<WorkflowNodeData>[],
+  edges: Edge[],
+): Node<WorkflowNodeData>[] {
+  if (edges.length === 0) {
+    return [...nodes].sort((a, b) => a.position.x - b.position.x)
+  }
+
+  const nodeById = new Map(nodes.map(node => [node.id, node]))
+  const outgoing = new Map<string, string>()
+  const incomingCount = new Map<string, number>()
+  const connectedIds = new Set<string>()
+
+  for (const edge of edges) {
+    if (!nodeById.has(edge.source) || !nodeById.has(edge.target)) continue
+
+    outgoing.set(edge.source, edge.target)
+    incomingCount.set(edge.target, (incomingCount.get(edge.target) ?? 0) + 1)
+    connectedIds.add(edge.source)
+    connectedIds.add(edge.target)
+  }
+
+  const starts = [...connectedIds]
+    .filter(id => (incomingCount.get(id) ?? 0) === 0)
+    .map(id => nodeById.get(id))
+    .filter((node): node is Node<WorkflowNodeData> => Boolean(node))
+    .sort((a, b) => a.position.x - b.position.x)
+
+  const ordered: Node<WorkflowNodeData>[] = []
+  const visited = new Set<string>()
+
+  for (const start of starts) {
+    let current: Node<WorkflowNodeData> | undefined = start
+
+    while (current && !visited.has(current.id)) {
+      ordered.push(current)
+      visited.add(current.id)
+      current = nodeById.get(outgoing.get(current.id) ?? '')
+    }
+  }
+
+  const disconnected = nodes
+    .filter(node => !visited.has(node.id))
+    .sort((a, b) => a.position.x - b.position.x)
+
+  return [...ordered, ...disconnected]
+}
+
 export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = use(params)
   const isDraft = idStr === 'new'
@@ -211,8 +259,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         return
       }
 
-      // Sorted left→right for ordem
-      const sorted = [...currentNodes].sort((a, b) => a.position.x - b.position.x)
+      const sorted = orderNodesForExecution(currentNodes, currentEdges)
 
       // Build id-mapping for temp nodes
       const idMap = new Map<string, number>()
