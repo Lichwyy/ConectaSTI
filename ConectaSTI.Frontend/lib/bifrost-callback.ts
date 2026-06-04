@@ -5,6 +5,16 @@ import { getBifrostToken, getTokenMaxAge, verifyAuthToken } from "@/lib/auth-ser
 const DEFAULT_REDIRECT_PATH = "/"
 
 function redirectToApp(request: NextRequest) {
+  const configuredRedirect = process.env.NEXT_PUBLIC_REDIRECT_URL?.trim()
+
+  if (configuredRedirect) {
+    try {
+      return new URL(DEFAULT_REDIRECT_PATH, configuredRedirect)
+    } catch {
+      // Fall back to the request URL below when the environment value is invalid.
+    }
+  }
+
   return new URL(DEFAULT_REDIRECT_PATH, request.url)
 }
 
