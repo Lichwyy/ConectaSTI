@@ -1,0 +1,292 @@
+DO $$
+DECLARE
+    v_integracao_id BIGINT;
+    v_endpoint_municipios_sp_id BIGINT;
+    v_endpoint_municipio_storage_id BIGINT;
+    v_funcao_selecionar_id BIGINT;
+    v_funcao_detalhe_id BIGINT;
+    v_funcao_confirmacao_id BIGINT;
+    v_no_requisicao_id BIGINT;
+    v_no_funcao_id BIGINT;
+    v_no_storage_salvar_id BIGINT;
+    v_no_storage_pegar_id BIGINT;
+    v_fluxo_id BIGINT;
+    v_fluxo_versionado_id BIGINT;
+BEGIN
+    SELECT id INTO v_integracao_id
+    FROM integracao
+    WHERE nome = 'Gov - IBGE Localidades'
+    ORDER BY id
+    LIMIT 1;
+
+    IF v_integracao_id IS NULL THEN
+        INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+        VALUES (current_timestamp, current_timestamp, 'https://servicodados.ibge.gov.br/api/v1/localidades', NULL, 'Gov - IBGE Localidades', 'API publica do IBGE para estados, municipios, regioes e codigos oficiais.')
+        RETURNING id INTO v_integracao_id;
+    END IF;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'estados/SP/municipios', v_integracao_id, 1, 'Demo storage: lista municipios de SP para selecionar Sao Paulo.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'estados/SP/municipios'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_municipios_sp_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'estados/SP/municipios'
+      AND verbo = 1
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'municipios/{{codigoMunicipio}}', v_integracao_id, 1, 'Demo storage: busca municipio usando codigo vindo do storage.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'municipios/{{codigoMunicipio}}'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_municipio_storage_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'municipios/{{codigoMunicipio}}'
+      AND verbo = 1
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Demo Storage - Selecionar Codigo Sao Paulo', '
+var municipios = [];
+if (Array.isArray($input)) {
+    municipios = $input;
+}
+
+var escolhido = null;
+for (var i = 0; i < municipios.length; i++) {
+    var item = municipios[i] || {};
+    if (item.id === 3550308 || item.nome === "Sao Paulo" || item.nome === "São Paulo") {
+        escolhido = item;
+        break;
+    }
+}
+
+if (!escolhido) {
+    escolhido = {
+        id: 3550308,
+        nome: "Sao Paulo"
+    };
+}
+
+return {
+    codigoMunicipio: escolhido.id || 3550308,
+    nome: escolhido.nome || "Sao Paulo",
+    uf: "SP",
+    storageKey: "demo:ibge:codigo-municipio",
+    salvoEm: new Date().toISOString()
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Demo Storage - Selecionar Codigo Sao Paulo');
+
+    SELECT id INTO v_funcao_selecionar_id
+    FROM funcao
+    WHERE nome = 'Demo Storage - Selecionar Codigo Sao Paulo'
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Demo Storage - Confirmar Codigo Salvo', '
+return {
+    etapa: "codigo-salvo-no-storage",
+    storageKey: $input.storageKey || "demo:ibge:codigo-municipio",
+    codigoMunicipio: $input.codigoMunicipio,
+    nome: $input.nome,
+    uf: $input.uf,
+    proximoTeste: "GET /demo/storage/ibge/municipio"
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Demo Storage - Confirmar Codigo Salvo');
+
+    SELECT id INTO v_funcao_confirmacao_id
+    FROM funcao
+    WHERE nome = 'Demo Storage - Confirmar Codigo Salvo'
+    ORDER BY id
+    LIMIT 1;
+
+    SELECT id INTO v_funcao_detalhe_id
+    FROM funcao
+    WHERE nome = 'Gov - Funcao IBGE Municipio Detalhe'
+    ORDER BY id
+    LIMIT 1;
+
+    IF v_funcao_detalhe_id IS NULL THEN
+        INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+        VALUES (current_timestamp, current_timestamp, 'Gov - Funcao IBGE Municipio Detalhe', '
+var municipio = $input || {};
+return {
+    provider: "IBGE Localidades",
+    codigoIbge: municipio.id,
+    nome: municipio.nome,
+    uf: municipio["regiao-imediata"] && municipio["regiao-imediata"]["regiao-intermediaria"] ? municipio["regiao-imediata"]["regiao-intermediaria"].UF : null
+};
+', '$input')
+        RETURNING id INTO v_funcao_detalhe_id;
+    END IF;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_municipios_sp_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_municipios_sp_id);
+
+    SELECT id INTO v_no_requisicao_id
+    FROM no
+    WHERE tipo = 1
+      AND end_point_id = v_endpoint_municipios_sp_id
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_selecionar_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_selecionar_id);
+
+    SELECT id INTO v_no_funcao_id
+    FROM no
+    WHERE tipo = 2
+      AND funcao_id = v_funcao_selecionar_id
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 3, NULL, NULL, NULL, NULL, NULL, 'demo:ibge:codigo-municipio', 1440
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 3 AND chave_valor = 'demo:ibge:codigo-municipio');
+
+    SELECT id INTO v_no_storage_salvar_id
+    FROM no
+    WHERE tipo = 3
+      AND chave_valor = 'demo:ibge:codigo-municipio'
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Demo Storage - IBGE Salvar Codigo Municipio'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Demo Storage - IBGE Salvar Codigo Municipio');
+
+    SELECT id INTO v_fluxo_id
+    FROM fluxo
+    WHERE nome = 'Demo Storage - IBGE Salvar Codigo Municipio'
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 3, v_no_storage_salvar_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 3);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Demo Storage - IBGE Salvar Codigo Municipio v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 3, 'NoId', v_no_storage_salvar_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id
+    FROM fluxo_versionado
+    WHERE fluxo_id = v_fluxo_id
+      AND versao = 1
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Demo Storage - Rota Salvar Codigo IBGE', 'Busca municipios de SP, seleciona Sao Paulo e salva o codigo IBGE no storage.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'demo/storage/ibge/salvar-codigo', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'demo/storage/ibge/salvar-codigo');
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 4, NULL, NULL, NULL, NULL, NULL, 'demo:ibge:codigo-municipio', 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 4 AND chave_valor = 'demo:ibge:codigo-municipio');
+
+    SELECT id INTO v_no_storage_pegar_id
+    FROM no
+    WHERE tipo = 4
+      AND chave_valor = 'demo:ibge:codigo-municipio'
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_municipio_storage_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_municipio_storage_id);
+
+    SELECT id INTO v_no_requisicao_id
+    FROM no
+    WHERE tipo = 1
+      AND end_point_id = v_endpoint_municipio_storage_id
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_detalhe_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_detalhe_id);
+
+    SELECT id INTO v_no_funcao_id
+    FROM no
+    WHERE tipo = 2
+      AND funcao_id = v_funcao_detalhe_id
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Demo Storage - IBGE Buscar Municipio Salvo'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Demo Storage - IBGE Buscar Municipio Salvo');
+
+    SELECT id INTO v_fluxo_id
+    FROM fluxo
+    WHERE nome = 'Demo Storage - IBGE Buscar Municipio Salvo'
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_storage_pegar_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_requisicao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 3, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 3);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Demo Storage - IBGE Buscar Municipio Salvo v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_storage_pegar_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 3, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id
+    FROM fluxo_versionado
+    WHERE fluxo_id = v_fluxo_id
+      AND versao = 1
+    ORDER BY id
+    LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Demo Storage - Rota Buscar Municipio Salvo', 'Le o codigo IBGE salvo em outro workflow e usa interpolacao para buscar o municipio.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'demo/storage/ibge/municipio', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'demo/storage/ibge/municipio');
+END $$;
+

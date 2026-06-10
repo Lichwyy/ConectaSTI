@@ -350,6 +350,40 @@ Exemplo:
 curl -X POST http://localhost:5184/gov/tse/datasets/predefinido
 ```
 
+### 14. Demo Storage IBGE salvar codigo de municipio
+
+- Rota: `GET /demo/storage/ibge/salvar-codigo`
+- URL local: `http://localhost:5184/demo/storage/ibge/salvar-codigo`
+- Senha: nao
+
+O que faz:
+- busca municipios de SP no IBGE
+- seleciona Sao Paulo (`codigoMunicipio = 3550308`)
+- salva o payload na chave de storage `demo:ibge:codigo-municipio`
+
+Exemplo:
+
+```bash
+curl http://localhost:5184/demo/storage/ibge/salvar-codigo
+```
+
+### 15. Demo Storage IBGE buscar municipio salvo
+
+- Rota: `GET /demo/storage/ibge/municipio`
+- URL local: `http://localhost:5184/demo/storage/ibge/municipio`
+- Senha: nao
+
+O que faz:
+- le a chave `demo:ibge:codigo-municipio` com `PegarStorage`
+- usa `municipios/{{codigoMunicipio}}` para interpolar o codigo salvo no endpoint
+- busca o detalhe do municipio no IBGE e devolve um resumo territorial
+
+Exemplo:
+
+```bash
+curl http://localhost:5184/demo/storage/ibge/municipio
+```
+
 ## Ordem recomendada de teste
 
 1. Testar `GET /examples/cep/01001000`
@@ -365,6 +399,8 @@ curl -X POST http://localhost:5184/gov/tse/datasets/predefinido
 11. Testar `GET /gov/tse/datasets?query=eleicoes`
 12. Testar `POST /gov/tse/datasets/body`
 13. Testar `POST /gov/tse/datasets/predefinido`
+14. Testar `GET /demo/storage/ibge/salvar-codigo`
+15. Testar `GET /demo/storage/ibge/municipio`
 
 ## Observacoes
 
