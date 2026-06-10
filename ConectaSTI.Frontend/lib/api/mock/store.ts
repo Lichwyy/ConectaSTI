@@ -1,4 +1,4 @@
-import type { Integracao, EndPoint, Funcao, No, Operacao, Fluxo } from '@/lib/types'
+import type { Integracao, EndPoint, Funcao, No, Operacao, Fluxo, LogFluxo, LogOperacao } from '@/lib/types'
 
 let _id = 200
 function nextId() { return _id++ }
@@ -33,6 +33,57 @@ const fluxos: Fluxo[] = [
 
 const nos: No[] = []
 const operacoes: Operacao[] = []
+const now = new Date().toISOString()
+const logsFluxo: LogFluxo[] = [
+  {
+    id: 101,
+    fluxoId: 1,
+    versao: 1,
+    fluxoVersionadoId: 1,
+    nome: 'Busca de Endereço por CEP',
+    iniciadoEm: now,
+    finalizadoEm: now,
+    duracaoMs: 184,
+    quantidadeOperacoes: 1,
+    operacoesExecutadas: 1,
+    operacoesComSucesso: 1,
+    operacoesComFalha: 0,
+    statusHttp: 200,
+    sucesso: true,
+    criadoEm: now,
+  },
+]
+const logsOperacao: LogOperacao[] = [
+  {
+    id: 102,
+    logFluxoId: 101,
+    noId: 1,
+    nome: 'ViaCEP',
+    url: 'https://viacep.com.br/ws',
+    recurso: '/{cep}/json',
+    verbo: 1,
+    tipo: 1,
+    tempoMinutoValidade: 0,
+    ordem: 1,
+    repetir: false,
+    usarDadosAnterior: false,
+    erro: 1,
+    maximoRepeticao: 0,
+    backoffType: 1,
+    backoffDelay: 0,
+    backoffMultiplier: 1,
+    timeout: 30000,
+    iniciadoEm: now,
+    finalizadoEm: now,
+    duracaoMs: 184,
+    tentativasRealizadas: 1,
+    atrasoTotalMs: 0,
+    statusHttp: 200,
+    sucesso: true,
+    respostaBody: '{"cep":"01001-000","localidade":"São Paulo"}',
+    criadoEm: now,
+  },
+]
 
 // ── Mutable store ────────────────────────────────────────────────────────────
 
@@ -43,5 +94,7 @@ export const store = {
   fluxos: [...fluxos],
   nos: [...nos],
   operacoes: [...operacoes],
+  logsFluxo: [...logsFluxo],
+  logsOperacao: [...logsOperacao],
   nextId,
 }

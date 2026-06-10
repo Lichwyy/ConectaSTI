@@ -66,6 +66,73 @@ export interface Fluxo {
   criadoEm?: string | null
 }
 
+export interface EntradaFluxo {
+  routeParams?: Record<string, string>
+  queryParams?: Record<string, string>
+  body?: unknown
+}
+
+export interface LogFluxo {
+  id: number
+  fluxoId?: number | null
+  versao: number
+  fluxoVersionadoId?: number | null
+  nome?: string | null
+  logFluxoPaiId?: number | null
+  iniciadoEm?: string | null
+  finalizadoEm?: string | null
+  duracaoMs: number
+  quantidadeOperacoes: number
+  operacoesExecutadas: number
+  operacoesComSucesso: number
+  operacoesComFalha: number
+  statusHttp: number
+  sucesso: boolean
+  criadoEm?: string | null
+}
+
+export interface LogOperacao {
+  id: number
+  logFluxoId: number
+  noId?: number | null
+  funcaoId?: number | null
+  endPointId?: number | null
+  nome?: string | null
+  url?: string | null
+  recurso?: string | null
+  verbo: VerboHttp
+  token?: string | null
+  tipo: TipoNo
+  body?: string | null
+  headers?: string | null
+  chaveValor?: string | null
+  tempoMinutoValidade: number
+  ordem: number
+  repetir: boolean
+  usarDadosAnterior: boolean
+  erro: TipoErro
+  maximoRepeticao: number
+  backoffType: BackoffType
+  backoffDelay: number
+  backoffMultiplier: number
+  timeout: number
+  iniciadoEm: string
+  finalizadoEm: string
+  duracaoMs: number
+  tentativasRealizadas: number
+  atrasoTotalMs: number
+  statusHttp: number
+  sucesso: boolean
+  dadoAnterior?: string | null
+  resposta?: string | null
+  respostaBody?: string | null
+  mensagensRetorno?: string | null
+  mensagemErro?: string | null
+  exceptionTipo?: string | null
+  stackTrace?: string | null
+  criadoEm?: string | null
+}
+
 export interface WorkflowNodeData extends Record<string, unknown> {
   noId: number
   operacaoId?: number

@@ -16,6 +16,23 @@ function parsePath(path: string): [string, number | null] {
 export async function mockRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
   await delay()
 
+  const executarFluxoMatch = path.match(/^\/_root\/executarfluxo\/(\d+)$/)
+  if (method.toUpperCase() === 'POST' && executarFluxoMatch) {
+    return {
+      status: 200,
+      sucesso: true,
+      resposta: {
+        fluxoId: Number(executarFluxoMatch[1]),
+        entrada: body ?? null,
+        mock: true,
+      },
+      respostaBody: JSON.stringify({ fluxoId: Number(executarFluxoMatch[1]), entrada: body ?? null, mock: true }, null, 2),
+      retorno: [
+        { mensagem: '[mock] Workflow executado com sucesso.', erro: false },
+      ],
+    } as T
+  }
+
   const [entity, entityId] = parsePath(path)
   const m = method.toUpperCase()
 
@@ -157,6 +174,25 @@ export async function mockRequest<T>(method: string, path: string, body?: unknow
     if (m === 'DELETE' && entityId !== null) {
       store.operacoes = store.operacoes.filter(op => op.id !== entityId)
       return undefined as T
+    }
+  }
+
+  // ── Logs ──────────────────────────────────────────────────────────────────
+  if (entity === 'LogFluxo') {
+    if (m === 'GET' && entityId === null) return store.logsFluxo as T
+    if (m === 'GET' && entityId !== null) {
+      const item = store.logsFluxo.find(log => log.id === entityId)
+      if (!item) throw new Error('Log de fluxo não encontrado')
+      return item as T
+    }
+  }
+
+  if (entity === 'LogOperacao') {
+    if (m === 'GET' && entityId === null) return store.logsOperacao as T
+    if (m === 'GET' && entityId !== null) {
+      const item = store.logsOperacao.find(log => log.id === entityId)
+      if (!item) throw new Error('Log de operação não encontrado')
+      return item as T
     }
   }
 

@@ -9,7 +9,7 @@ import { useIntegracoes } from '@/hooks/useIntegracoes'
 import { useEndpoints } from '@/hooks/useEndpoints'
 import { useFuncoes } from '@/hooks/useFuncoes'
 import type {
-  Fluxo, WorkflowNodeData, TipoErro, BackoffType, CanvasState, Operacao, No
+  Fluxo, WorkflowNodeData, TipoErro, BackoffType, CanvasState, Operacao, No, EntradaFluxo
 } from '@/lib/types'
 import { WorkflowCanvas } from '@/components/workflow/WorkflowCanvas'
 import { NodePalette } from '@/components/workflow/NodePalette'
@@ -24,10 +24,57 @@ import {
   XIcon,
   PlayIcon,
   TrashIcon,
+  BracketsCurlyIcon,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'motion/react'
 
 const CANVAS_KEY = (id: number) => `canvas-state-${id}`
+const ENTRADA_KEY = (id: number) => `workflow-entry-${id}`
+
+function parseJsonRecord(text: string, label: string): Record<string, string> {
+  const trimmed = text.trim()
+  if (!trimmed) return {}
+
+  const parsed = JSON.parse(trimmed) as unknown
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${label} deve ser um objeto JSON.`)
+  }
+
+  return Object.fromEntries(
+    Object.entries(parsed as Record<string, unknown>).map(([key, value]) => [
+      key,
+      value == null ? '' : String(value),
+    ])
+  )
+}
+
+function parseEntradaBody(text: string): unknown {
+  const trimmed = text.trim()
+  if (!trimmed) return undefined
+
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return text
+  }
+}
+
+function buildEntradaFluxo(
+  routeParamsText: string,
+  queryParamsText: string,
+  bodyText: string,
+): EntradaFluxo | undefined {
+  const routeParams = parseJsonRecord(routeParamsText, 'Route params')
+  const queryParams = parseJsonRecord(queryParamsText, 'Query params')
+  const body = parseEntradaBody(bodyText)
+
+  const entrada: EntradaFluxo = {}
+  if (Object.keys(routeParams).length > 0) entrada.routeParams = routeParams
+  if (Object.keys(queryParams).length > 0) entrada.queryParams = queryParams
+  if (body !== undefined) entrada.body = body
+
+  return Object.keys(entrada).length > 0 ? entrada : undefined
+}
 
 function operacaoPayload(
   data: WorkflowNodeData,
@@ -117,6 +164,11 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
   const [saved, setSaved] = useState(false)
   const [executing, setExecuting] = useState(false)
   const [executionResult, setExecutionResult] = useState<FluxoExecutionResult | null>(null)
+  const [showExecutionInput, setShowExecutionInput] = useState(false)
+  const [routeParamsText, setRouteParamsText] = useState('')
+  const [queryParamsText, setQueryParamsText] = useState('')
+  const [bodyText, setBodyText] = useState('')
+  const [executionInputError, setExecutionInputError] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<Node<WorkflowNodeData> | null>(null)
   const [canvasSyncKey, setCanvasSyncKey] = useState(0)
 
@@ -134,6 +186,22 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     async function load() {
+      const entradaRaw = typeof window !== 'undefined' ? localStorage.getItem(ENTRADA_KEY(id)) : null
+      if (entradaRaw) {
+        try {
+          const entrada = JSON.parse(entradaRaw) as EntradaFluxo
+          setRouteParamsText(entrada.routeParams ? JSON.stringify(entrada.routeParams, null, 2) : '')
+          setQueryParamsText(entrada.queryParams ? JSON.stringify(entrada.queryParams, null, 2) : '')
+          setBodyText(entrada.body != null ? JSON.stringify(entrada.body, null, 2) : '')
+        } catch {
+          localStorage.removeItem(ENTRADA_KEY(id))
+        }
+      } else {
+        setRouteParamsText('')
+        setQueryParamsText('')
+        setBodyText('')
+      }
+
       if (isDraft) {
         const draftName = sessionStorage.getItem('workflow-draft-name') ?? 'Novo workflow'
         const draftFluxo: Fluxo = { id: 0, nome: draftName, operacoes: [] }
@@ -260,6 +328,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
       }
 
       const sorted = orderNodesForExecution(currentNodes, currentEdges)
+      const currentNoIds = new Set(currentNodes.map(n => n.data.noId as number).filter(n => n > 0))
+      const removedNoIds = [...initialNoIdsRef.current].filter(noId => !currentNoIds.has(noId))
 
       // Build id-mapping for temp nodes
       const idMap = new Map<string, number>()
@@ -298,18 +368,26 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         }
       }
 
+      for (const noId of removedNoIds) {
+        await deleteNo(noId).catch(() => {})
+      }
+
       const savedFluxo = isDraft
         ? await createFluxo({ nome, operacoes })
         : await updateFluxo(id, { nome, operacoes })
       const savedId = savedFluxo.id
 
-      // Delete removed nodes
-      const currentNoIds = new Set(currentNodes.map(n => n.data.noId as number).filter(n => n > 0))
-      for (const noId of initialNoIdsRef.current) {
-        if (!currentNoIds.has(noId)) {
-          await deleteNo(noId).catch(() => {})
+      const remappedEdges = currentEdges.map(edge => {
+        const source = String(idMap.get(edge.source) ?? edge.source)
+        const target = String(idMap.get(edge.target) ?? edge.target)
+
+        return {
+          ...edge,
+          id: `e-${source}-${target}`,
+          source,
+          target,
         }
-      }
+      })
 
       // Save canvas state
       const positions: CanvasState['positions'] = {}
@@ -317,10 +395,14 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         const realId = idMap.get(node.id) ?? (node.data.noId as number)
         if (realId > 0) positions[String(realId)] = node.position
       }
-      localStorage.setItem(CANVAS_KEY(savedId), JSON.stringify({ positions, edges: currentEdges }))
+      localStorage.setItem(CANVAS_KEY(savedId), JSON.stringify({ positions, edges: remappedEdges }))
 
       // Update initial ids
       initialNoIdsRef.current = new Set(nodesRef.current.map(n => n.data.noId as number).filter(n => n > 0))
+      edgesRef.current = remappedEdges
+      setInitialNodes(nodesRef.current)
+      setInitialEdges(remappedEdges)
+      setCanvasSyncKey(key => key + 1)
       setFluxo(savedFluxo)
 
       if (isDraft) {
@@ -353,10 +435,23 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
     setExecuting(true)
     setExecutionResult(null)
+    setExecutionInputError(null)
     try {
-      setExecutionResult(await executarFluxo(fluxo.id))
+      const entrada = buildEntradaFluxo(routeParamsText, queryParamsText, bodyText)
+
+      if (typeof window !== 'undefined') {
+        if (entrada) {
+          localStorage.setItem(ENTRADA_KEY(fluxo.id), JSON.stringify(entrada))
+        } else {
+          localStorage.removeItem(ENTRADA_KEY(fluxo.id))
+        }
+      }
+
+      setExecutionResult(await executarFluxo(fluxo.id, entrada))
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erro ao executar workflow')
+      const message = e instanceof Error ? e.message : 'Erro ao executar workflow'
+      setExecutionInputError(message)
+      alert(message)
     } finally {
       setExecuting(false)
     }
@@ -414,6 +509,17 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         <div className="ml-auto flex items-center gap-2">
           <Button
             size="sm"
+            variant={showExecutionInput ? 'default' : 'outline'}
+            className="gap-1.5 rounded-none h-7 text-xs"
+            onClick={() => setShowExecutionInput(value => !value)}
+            disabled={isDraft}
+          >
+            <BracketsCurlyIcon size={12} />
+            Entradas
+          </Button>
+
+          <Button
+            size="sm"
             variant="outline"
             className="gap-1.5 rounded-none h-7 text-xs"
             onClick={handleExecute}
@@ -445,6 +551,85 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
       {/* Canvas area */}
       <div className="flex flex-1 overflow-hidden">
+        <AnimatePresence>
+          {showExecutionInput && !isDraft && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-[292px] top-14 z-20 w-[360px] border border-border bg-white/95 p-4 text-xs shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">Entradas da execução</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Use nos nós com {'{{routeParams.nome}}'}, {'{{queryParams.nome}}'} e {'{{body.campo}}'}.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowExecutionInput(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Fechar"
+                >
+                  <XIcon size={12} />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <ExecutionInputField
+                  label="Route params"
+                  value={routeParamsText}
+                  onChange={setRouteParamsText}
+                  placeholder={'{\n  "uf": "SP",\n  "codigoSerie": "11"\n}'}
+                  rows={4}
+                />
+                <ExecutionInputField
+                  label="Query params"
+                  value={queryParamsText}
+                  onChange={setQueryParamsText}
+                  placeholder={'{\n  "query": "eleicoes",\n  "rows": "5"\n}'}
+                  rows={4}
+                />
+                <ExecutionInputField
+                  label="Body"
+                  value={bodyText}
+                  onChange={setBodyText}
+                  placeholder={'{\n  "query": "partidos",\n  "rows": 5\n}'}
+                  rows={6}
+                />
+
+                {executionInputError && (
+                  <p className="border border-destructive/20 bg-destructive/10 p-2 text-[11px] text-destructive">
+                    {executionInputError}
+                  </p>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 w-full rounded-none text-xs"
+                  onClick={() => {
+                    try {
+                      const entrada = buildEntradaFluxo(routeParamsText, queryParamsText, bodyText)
+                      if (entrada) {
+                        localStorage.setItem(ENTRADA_KEY(id), JSON.stringify(entrada))
+                      } else {
+                        localStorage.removeItem(ENTRADA_KEY(id))
+                      }
+                      setExecutionInputError(null)
+                    } catch (e) {
+                      setExecutionInputError(e instanceof Error ? e.message : 'Entrada inválida')
+                    }
+                  }}
+                >
+                  Salvar entradas
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {executionResult && (
           <div className="absolute right-4 top-14 z-20 max-w-md border border-border bg-white/95 p-3 text-xs shadow-sm">
             <div className="flex items-start justify-between gap-3">
@@ -534,6 +719,33 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
           )}
         </AnimatePresence>
       </div>
+    </div>
+  )
+}
+
+function ExecutionInputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  rows: number
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</label>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full border border-input bg-background px-2 py-2 text-[11px] font-mono resize-y outline-none focus:ring-1 focus:ring-ring"
+      />
     </div>
   )
 }
@@ -665,7 +877,7 @@ function NodeDetailPanel({
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Placeholders aceitos: {'{{id}}'}, {'{{data.id}}'}, {'{{items[0].email}}'}.
+                Placeholders aceitos: {'{{routeParams.uf}}'}, {'{{queryParams.query}}'}, {'{{body.query}}'}, {'{{data.id}}'}.
               </p>
             </div>
           </>

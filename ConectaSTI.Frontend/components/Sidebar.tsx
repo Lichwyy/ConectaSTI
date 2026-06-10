@@ -6,6 +6,7 @@ import {
   PlugIcon,
   GitBranchIcon,
   CodeIcon,
+  ListChecksIcon,
   SignOutIcon,
   type Icon,
 } from '@phosphor-icons/react'
@@ -24,6 +25,7 @@ const options: {
   { id: 'endpoints', label: 'Endpoints',   href: '/endpoints', icon: PlugIcon         },
   { id: 'funcoes',   label: 'Funções JS',  href: '/funcoes',   icon: CodeIcon         },
   { id: 'workflows', label: 'Workflows',   href: '/workflows', icon: GitBranchIcon    },
+  { id: 'logs',      label: 'Logs',        href: '/logs',      icon: ListChecksIcon   },
 ]
 
 export default function Sidebar() {

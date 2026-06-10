@@ -1,4 +1,4 @@
-import type { Fluxo, Operacao } from '@/lib/types'
+import type { EntradaFluxo, Fluxo, Operacao } from '@/lib/types'
 import { client } from './client'
 
 export type FluxoPayload = {
@@ -34,6 +34,6 @@ export async function deleteFluxo(id: number): Promise<void> {
   return client.delete(`/Fluxo/${id}`)
 }
 
-export async function executarFluxo(id: number): Promise<FluxoExecutionResult> {
-  return client.post<FluxoExecutionResult>(`/_root/executarfluxo/${id}`, {})
+export async function executarFluxo(id: number, entrada?: EntradaFluxo): Promise<FluxoExecutionResult> {
+  return client.post<FluxoExecutionResult>(`/_root/executarfluxo/${id}`, entrada ?? {})
 }
