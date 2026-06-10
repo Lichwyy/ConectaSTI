@@ -38,12 +38,12 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         _servicoLogOperacao = servicoLogOperacao;
     }
 
-    public async Task<RespostaHttp<object>> Executar(long fluxoId)
+    public async Task<RespostaHttp<object>> Executar(long fluxoId, EntradaFluxoDTO entrada = null)
     {
-        return await Executar(fluxoId, null);
+        return await Executar(fluxoId, null, NormalizarEntrada(entrada));
     }
 
-    public async Task<RespostaHttp<object>> ExecutarFluxoVersionado(long fluxoVersionadoId)
+    public async Task<RespostaHttp<object>> ExecutarFluxoVersionado(long fluxoVersionadoId, EntradaFluxoDTO entrada = null)
     {
         FluxoVersionado fluxoVersionado = _repositorioConsulta
             .Consulta<FluxoVersionado>(x => x.Id == fluxoVersionadoId)
@@ -54,10 +54,10 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             return CreateErrorResponse(404, $"Nao foi possivel achar o fluxo versionado com id {fluxoVersionadoId}");
         }
 
-        return await ExecutarFluxoVersionado(fluxoVersionado, null);
+        return await ExecutarFluxoVersionado(fluxoVersionado, null, NormalizarEntrada(entrada));
     }
 
-    private async Task<RespostaHttp<object>> Executar(long fluxoId, long? logFluxoPaiId)
+    private async Task<RespostaHttp<object>> Executar(long fluxoId, long? logFluxoPaiId, object entradaInicial = null)
     {
         FluxoVersionado fluxoVersionado = _repositorioConsulta
             .Consulta<FluxoVersionado>(x => x.FluxoId == fluxoId && x.Atual)
@@ -68,10 +68,10 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             return CreateErrorResponse(404, $"Nao foi possivel achar o fluxo com id {fluxoId}");
         }
 
-        return await ExecutarFluxoVersionado(fluxoVersionado, logFluxoPaiId);
+        return await ExecutarFluxoVersionado(fluxoVersionado, logFluxoPaiId, entradaInicial);
     }
 
-    private async Task<RespostaHttp<object>> ExecutarFluxoVersionado(FluxoVersionado fluxoVersionado, long? logFluxoPaiId)
+    private async Task<RespostaHttp<object>> ExecutarFluxoVersionado(FluxoVersionado fluxoVersionado, long? logFluxoPaiId, object entradaInicial = null)
     {
         LogFluxo logFluxo = new LogFluxo
         {
@@ -100,7 +100,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             else
             {
                 logFluxo.QuantidadeOperacoes = fluxoDto.Operacoes.Count;
-                respostaFinal = await ExecuteOperation(fluxoDto, logFluxo);
+                respostaFinal = await ExecuteOperation(fluxoDto, logFluxo, entradaInicial);
             }
         }
         catch (JsonException)
@@ -127,7 +127,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
         return respostaFinal;
     }
 
-    private async Task<RespostaHttp<object>> ExecuteOperation(FluxoDTO fluxoDto, LogFluxo logFluxo)
+    private async Task<RespostaHttp<object>> ExecuteOperation(FluxoDTO fluxoDto, LogFluxo logFluxo, object entradaInicial)
     {
         var operacoesOrdenadas = fluxoDto.Operacoes.OrderBy(x => x.Ordem).ToList();
         var noIds = operacoesOrdenadas.Select(x => x.NoId).Distinct().ToList();
@@ -135,7 +135,7 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
             .Consulta<No>(x => noIds.Contains(x.Id))
             .ToDictionary(x => x.Id, x => x);
 
-        object dadoAnterior = null;
+        object dadoAnterior = entradaInicial;
 
         foreach (OperacaoDTO operacaoDto in operacoesOrdenadas)
         {
@@ -446,6 +446,11 @@ public class FluxoVersionadoExecutor : IFluxoExecutor
     private static bool IsSuccessResponse(RespostaHttp<object> resposta)
     {
         return resposta != null && resposta.Status >= 200 && resposta.Status < 300;
+    }
+
+    private static object NormalizarEntrada(EntradaFluxoDTO entrada)
+    {
+        return entrada != null && entrada.TemDados() ? entrada : null;
     }
 
     private static string GetMensagensErro(ListaMensagens mensagens, string fallback)

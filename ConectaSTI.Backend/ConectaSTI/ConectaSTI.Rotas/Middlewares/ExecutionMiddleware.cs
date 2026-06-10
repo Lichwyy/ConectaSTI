@@ -4,6 +4,7 @@ using FGB.Dominio.Interfaces.Utilitarios;
 using FGB.Dominio.ObjetoValor;
 using FGB.IRepositorios;
 using FGB.Servicos;
+using System.Text.Json;
 
 namespace ConectaSTI.Rotas.Middlewares
 {
@@ -58,6 +59,12 @@ namespace ConectaSTI.Rotas.Middlewares
                 TimeoutSegundos = 300
             };
 
+            EntradaFluxoDTO entradaFluxo = CriarEntradaFluxo();
+            if (entradaFluxo != null)
+            {
+                requisicao.Body = entradaFluxo;
+            }
+
             var resposta = await _request.PostAsync<RespostaHttp<object>>(requisicao);
 
             if (resposta?.Sucesso == true && resposta.Resposta != null)
@@ -79,6 +86,40 @@ namespace ConectaSTI.Rotas.Middlewares
 
             context.Response.StatusCode = falha.Status;
             await context.Response.WriteAsJsonAsync(falha);
+        }
+
+        private EntradaFluxoDTO CriarEntradaFluxo()
+        {
+            EntradaFluxoDTO entrada = new EntradaFluxoDTO
+            {
+                RouteParams = _rotaDTO.RouteParams == null
+                    ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, string>(_rotaDTO.RouteParams, StringComparer.OrdinalIgnoreCase),
+                QueryParams = _rotaDTO.QueryParams == null
+                    ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, string>(_rotaDTO.QueryParams, StringComparer.OrdinalIgnoreCase),
+                Body = ConverterBody(_rotaDTO.Body)
+            };
+
+            return entrada.TemDados() ? entrada : null;
+        }
+
+        private static object ConverterBody(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return null;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(body);
+                return document.RootElement.Clone();
+            }
+            catch (JsonException)
+            {
+                return body;
+            }
         }
     }
 }

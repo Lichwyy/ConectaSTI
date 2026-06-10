@@ -1,0 +1,654 @@
+DO $$
+DECLARE
+    v_integracao_id BIGINT;
+    v_endpoint_id BIGINT;
+    v_funcao_id BIGINT;
+    v_no_requisicao_id BIGINT;
+    v_no_funcao_id BIGINT;
+    v_fluxo_id BIGINT;
+    v_fluxo_versionado_id BIGINT;
+BEGIN
+    INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+    SELECT current_timestamp, current_timestamp, 'https://servicodados.ibge.gov.br/api/v1/localidades', NULL, 'Gov - IBGE Localidades', 'API publica do IBGE para estados, municipios, regioes e codigos oficiais.'
+    WHERE NOT EXISTS (SELECT 1 FROM integracao WHERE nome = 'Gov - IBGE Localidades');
+
+    INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+    SELECT current_timestamp, current_timestamp, 'https://api.bcb.gov.br/dados/serie', NULL, 'Gov - Banco Central SGS', 'API publica do Banco Central para series temporais economicas.'
+    WHERE NOT EXISTS (SELECT 1 FROM integracao WHERE nome = 'Gov - Banco Central SGS');
+
+    INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+    SELECT current_timestamp, current_timestamp, 'https://dadosabertos.camara.leg.br/api/v2', NULL, 'Gov - Camara Dados Abertos', 'API publica da Camara dos Deputados para deputados, proposicoes, votacoes e despesas.'
+    WHERE NOT EXISTS (SELECT 1 FROM integracao WHERE nome = 'Gov - Camara Dados Abertos');
+
+    INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+    SELECT current_timestamp, current_timestamp, 'https://legis.senado.leg.br/dadosabertos', NULL, 'Gov - Senado Dados Abertos', 'API publica do Senado Federal para senadores e dados legislativos.'
+    WHERE NOT EXISTS (SELECT 1 FROM integracao WHERE nome = 'Gov - Senado Dados Abertos');
+
+    INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+    SELECT current_timestamp, current_timestamp, 'https://dadosabertos.tse.jus.br/api/3/action', NULL, 'Gov - TSE Dados Abertos CKAN', 'API publica CKAN do portal de dados abertos do Tribunal Superior Eleitoral.'
+    WHERE NOT EXISTS (SELECT 1 FROM integracao WHERE nome = 'Gov - TSE Dados Abertos CKAN');
+
+    SELECT id INTO v_integracao_id FROM integracao WHERE nome = 'Gov - IBGE Localidades' ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'estados/{{routeParams.uf}}/municipios', v_integracao_id, 1, 'Lista municipios de uma UF usando sigla capturada na rota.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'estados/{{routeParams.uf}}/municipios'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'estados/{{routeParams.uf}}/municipios'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao IBGE Municipios UF Resumo', '
+var municipios = [];
+if (Array.isArray($input)) {
+    municipios = $input;
+}
+var lista = [];
+var primeiro = {};
+if (municipios.length > 0 && municipios[0]) {
+    primeiro = municipios[0];
+}
+
+var ufInfo = null;
+if (primeiro.microrregiao && primeiro.microrregiao.mesorregiao && primeiro.microrregiao.mesorregiao.UF) {
+    ufInfo = primeiro.microrregiao.mesorregiao.UF;
+}
+
+if (!ufInfo && primeiro["regiao-imediata"] && primeiro["regiao-imediata"]["regiao-intermediaria"] && primeiro["regiao-imediata"]["regiao-intermediaria"].UF) {
+    ufInfo = primeiro["regiao-imediata"]["regiao-intermediaria"].UF;
+}
+
+var uf = null;
+var regiao = null;
+if (ufInfo) {
+    uf = ufInfo.sigla || null;
+    if (ufInfo.regiao) {
+        regiao = ufInfo.regiao.nome;
+    }
+}
+
+for (var i = 0; i < municipios.length; i++) {
+    var item = municipios[i] || {};
+    lista.push({
+        codigoIbge: item.id,
+        nome: item.nome,
+        uf: uf
+    });
+}
+
+return {
+    provider: "IBGE Localidades",
+    uf: uf,
+    regiao: regiao,
+    total: lista.length,
+    municipios: lista
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao IBGE Municipios UF Resumo');
+
+    SELECT id INTO v_funcao_id FROM funcao WHERE nome = 'Gov - Funcao IBGE Municipios UF Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id);
+
+    SELECT id INTO v_no_requisicao_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id);
+
+    SELECT id INTO v_no_funcao_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo IBGE Municipios por UF'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo IBGE Municipios por UF');
+
+    SELECT id INTO v_fluxo_id FROM fluxo WHERE nome = 'Gov - Fluxo IBGE Municipios por UF' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Gov - Fluxo IBGE Municipios por UF v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota IBGE Municipios por UF', 'Lista municipios da UF informada na rota usando a API de Localidades do IBGE.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'gov/ibge/ufs/{uf}/municipios', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'gov/ibge/ufs/{uf}/municipios');
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'municipios/{{routeParams.codigoMunicipio}}', v_integracao_id, 1, 'Busca um municipio pelo codigo IBGE capturado na rota.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'municipios/{{routeParams.codigoMunicipio}}'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'municipios/{{routeParams.codigoMunicipio}}'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao IBGE Municipio Detalhe', '
+var municipio = $input || {};
+var imediata = municipio["regiao-imediata"] || {};
+var intermediaria = imediata["regiao-intermediaria"] || {};
+var uf = intermediaria.UF || null;
+
+if (!uf && municipio.microrregiao && municipio.microrregiao.mesorregiao && municipio.microrregiao.mesorregiao.UF) {
+    uf = municipio.microrregiao.mesorregiao.UF;
+}
+
+var ufResumo = null;
+var regiaoResumo = null;
+var regiaoIntermediariaResumo = null;
+var regiaoImediataResumo = null;
+
+if (uf) {
+    ufResumo = {
+        id: uf.id,
+        sigla: uf.sigla,
+        nome: uf.nome
+    };
+
+    if (uf.regiao) {
+        regiaoResumo = {
+            id: uf.regiao.id,
+            sigla: uf.regiao.sigla,
+            nome: uf.regiao.nome
+        };
+    }
+}
+
+if (intermediaria.id) {
+    regiaoIntermediariaResumo = {
+        id: intermediaria.id,
+        nome: intermediaria.nome
+    };
+}
+
+if (imediata.id) {
+    regiaoImediataResumo = {
+        id: imediata.id,
+        nome: imediata.nome
+    };
+}
+
+return {
+    provider: "IBGE Localidades",
+    codigoIbge: municipio.id,
+    nome: municipio.nome,
+    uf: ufResumo,
+    regiao: regiaoResumo,
+    regiaoIntermediaria: regiaoIntermediariaResumo,
+    regiaoImediata: regiaoImediataResumo
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao IBGE Municipio Detalhe');
+
+    SELECT id INTO v_funcao_id FROM funcao WHERE nome = 'Gov - Funcao IBGE Municipio Detalhe' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id);
+
+    SELECT id INTO v_no_requisicao_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id);
+
+    SELECT id INTO v_no_funcao_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo IBGE Municipio Detalhe'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo IBGE Municipio Detalhe');
+
+    SELECT id INTO v_fluxo_id FROM fluxo WHERE nome = 'Gov - Fluxo IBGE Municipio Detalhe' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Gov - Fluxo IBGE Municipio Detalhe v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota IBGE Municipio Detalhe', 'Busca um municipio pelo codigo IBGE informado na rota e devolve um resumo territorial.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'gov/ibge/municipios/{codigoMunicipio}', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'gov/ibge/municipios/{codigoMunicipio}');
+
+    SELECT id INTO v_integracao_id FROM integracao WHERE nome = 'Gov - Banco Central SGS' ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'bcdata.sgs.{{routeParams.codigoSerie}}/dados/ultimos/{{routeParams.quantidade}}' || chr(63) || 'formato=json', v_integracao_id, 1, 'Busca ultimos pontos de uma serie temporal SGS do Banco Central.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'bcdata.sgs.{{routeParams.codigoSerie}}/dados/ultimos/{{routeParams.quantidade}}' || chr(63) || 'formato=json'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'bcdata.sgs.{{routeParams.codigoSerie}}/dados/ultimos/{{routeParams.quantidade}}' || chr(63) || 'formato=json'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao Banco Central SGS Resumo', '
+var pontosEntrada = [];
+if (Array.isArray($input)) {
+    pontosEntrada = $input;
+}
+var pontos = [];
+
+for (var i = 0; i < pontosEntrada.length; i++) {
+    var item = pontosEntrada[i] || {};
+    var valor = item.valor;
+    if (typeof valor === "string") {
+        valor = parseFloat(valor.replace(",", "."));
+    }
+
+    pontos.push({
+        data: item.data,
+        valor: valor
+    });
+}
+
+var primeiro = null;
+var ultimo = null;
+if (pontos.length > 0) {
+    primeiro = pontos[0];
+    ultimo = pontos[pontos.length - 1];
+}
+
+return {
+    provider: "Banco Central SGS",
+    total: pontos.length,
+    primeiro: primeiro,
+    ultimo: ultimo,
+    pontos: pontos
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao Banco Central SGS Resumo');
+
+    SELECT id INTO v_funcao_id FROM funcao WHERE nome = 'Gov - Funcao Banco Central SGS Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id);
+
+    SELECT id INTO v_no_requisicao_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id);
+
+    SELECT id INTO v_no_funcao_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo Banco Central SGS Ultimos'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo Banco Central SGS Ultimos');
+
+    SELECT id INTO v_fluxo_id FROM fluxo WHERE nome = 'Gov - Fluxo Banco Central SGS Ultimos' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Gov - Fluxo Banco Central SGS Ultimos v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota Banco Central SGS Ultimos', 'Consulta uma serie temporal do SGS pelo codigo e quantidade informados na rota.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'gov/bcb/sgs/{codigoSerie}/ultimos/{quantidade}', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'gov/bcb/sgs/{codigoSerie}/ultimos/{quantidade}');
+
+    SELECT id INTO v_integracao_id FROM integracao WHERE nome = 'Gov - Camara Dados Abertos' ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'deputados' || chr(63) || 'siglaUf={{routeParams.uf}}&ordem=ASC&ordenarPor=nome&itens=20', v_integracao_id, 1, 'Lista deputados federais por UF usando Dados Abertos da Camara.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'deputados' || chr(63) || 'siglaUf={{routeParams.uf}}&ordem=ASC&ordenarPor=nome&itens=20'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'deputados' || chr(63) || 'siglaUf={{routeParams.uf}}&ordem=ASC&ordenarPor=nome&itens=20'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao Camara Deputados UF Resumo', '
+var dados = [];
+if ($input && Array.isArray($input.dados)) {
+    dados = $input.dados;
+}
+var deputados = [];
+
+for (var i = 0; i < dados.length; i++) {
+    var item = dados[i] || {};
+    deputados.push({
+        id: item.id,
+        nome: item.nome,
+        partido: item.siglaPartido,
+        uf: item.siglaUf,
+        email: item.email,
+        urlFoto: item.urlFoto
+    });
+}
+
+var links = [];
+if ($input && $input.links) {
+    links = $input.links;
+}
+
+return {
+    provider: "Camara dos Deputados Dados Abertos",
+    total: deputados.length,
+    deputados: deputados,
+    links: links
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao Camara Deputados UF Resumo');
+
+    SELECT id INTO v_funcao_id FROM funcao WHERE nome = 'Gov - Funcao Camara Deputados UF Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id);
+
+    SELECT id INTO v_no_requisicao_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id);
+
+    SELECT id INTO v_no_funcao_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo Camara Deputados por UF'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo Camara Deputados por UF');
+
+    SELECT id INTO v_fluxo_id FROM fluxo WHERE nome = 'Gov - Fluxo Camara Deputados por UF' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Gov - Fluxo Camara Deputados por UF v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota Camara Deputados por UF', 'Lista deputados federais da UF informada usando a API de Dados Abertos da Camara.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'gov/camara/deputados/{uf}', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'gov/camara/deputados/{uf}');
+
+    SELECT id INTO v_integracao_id FROM integracao WHERE nome = 'Gov - Senado Dados Abertos' ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'senador/lista/atual' || chr(63) || 'formato=json', v_integracao_id, 1, 'Lista senadores em exercicio usando Dados Abertos do Senado.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'senador/lista/atual' || chr(63) || 'formato=json'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'senador/lista/atual' || chr(63) || 'formato=json'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao Senado Senadores Resumo', '
+var raiz = $input.ListaParlamentarEmExercicio || $input.listaParlamentarEmExercicio || $input;
+var origem = [];
+
+if (raiz.Parlamentares && raiz.Parlamentares.Parlamentar) {
+    origem = raiz.Parlamentares.Parlamentar;
+}
+
+if (!Array.isArray(origem)) {
+    if (origem) {
+        origem = [origem];
+    } else {
+        origem = [];
+    }
+}
+
+var senadores = [];
+
+for (var i = 0; i < origem.length; i++) {
+    var item = origem[i] || {};
+    var ident = item.IdentificacaoParlamentar || item.identificacaoParlamentar || {};
+    senadores.push({
+        codigo: ident.CodigoParlamentar,
+        nome: ident.NomeParlamentar,
+        partido: ident.SiglaPartidoParlamentar,
+        uf: ident.UfParlamentar,
+        email: ident.EmailParlamentar
+    });
+}
+
+return {
+    provider: "Senado Dados Abertos",
+    total: senadores.length,
+    senadores: senadores
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao Senado Senadores Resumo');
+
+    SELECT id INTO v_funcao_id FROM funcao WHERE nome = 'Gov - Funcao Senado Senadores Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id);
+
+    SELECT id INTO v_no_requisicao_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id);
+
+    SELECT id INTO v_no_funcao_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo Senado Senadores Atuais'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo Senado Senadores Atuais');
+
+    SELECT id INTO v_fluxo_id FROM fluxo WHERE nome = 'Gov - Fluxo Senado Senadores Atuais' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Gov - Fluxo Senado Senadores Atuais v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota Senado Senadores Atuais', 'Lista senadores atuais usando a API de Dados Abertos do Senado.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'gov/senado/senadores', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'gov/senado/senadores');
+
+    SELECT id INTO v_integracao_id FROM integracao WHERE nome = 'Gov - TSE Dados Abertos CKAN' ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'package_search' || chr(63) || 'q={{queryParams.query}}&rows=10', v_integracao_id, 1, 'Busca datasets no portal de Dados Abertos do TSE usando API CKAN.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'package_search' || chr(63) || 'q={{queryParams.query}}&rows=10'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'package_search' || chr(63) || 'q={{queryParams.query}}&rows=10'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao TSE Datasets Resumo', '
+var result = $input.result || {};
+var origem = result.results || $input.results || $input.content || $input.items || [];
+
+if (!Array.isArray(origem)) {
+    origem = [];
+}
+
+var datasets = [];
+
+for (var i = 0; i < origem.length; i++) {
+    var item = origem[i] || {};
+    var org = item.organization || item.organizacao || {};
+    var tagsOrigem = [];
+    if (Array.isArray(item.tags)) {
+        tagsOrigem = item.tags;
+    }
+    var tags = [];
+
+    for (var t = 0; t < tagsOrigem.length; t++) {
+        tags.push(tagsOrigem[t].display_name || tagsOrigem[t].name || tagsOrigem[t]);
+    }
+
+    datasets.push({
+        id: item.id,
+        nome: item.name || item.nome,
+        titulo: item.title || item.titulo,
+        organizacao: org.title || org.name || org.nome,
+        atualizadoEm: item.metadata_modified || item.dataAtualizacao,
+        tags: tags
+    });
+}
+
+return {
+    provider: "TSE Dados Abertos CKAN",
+    total: result.count || $input.totalElements || datasets.length,
+    datasets: datasets
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao TSE Datasets Resumo');
+
+    SELECT id INTO v_funcao_id FROM funcao WHERE nome = 'Gov - Funcao TSE Datasets Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id);
+
+    SELECT id INTO v_no_requisicao_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id);
+
+    SELECT id INTO v_no_funcao_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo TSE Busca Datasets'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo TSE Busca Datasets');
+
+    SELECT id INTO v_fluxo_id FROM fluxo WHERE nome = 'Gov - Fluxo TSE Busca Datasets' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_id, v_fluxo_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_id, v_fluxo_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_id, 'Gov - Fluxo TSE Busca Datasets v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota TSE Busca Datasets', 'Busca datasets no catalogo CKAN do TSE usando o parametro query da URL.', NULL, false, false, 0, 60, false, NULL, NULL, v_fluxo_versionado_id, 'v1', 'gov/tse/datasets', 1
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 1 AND caminho = 'gov/tse/datasets');
+END $$;

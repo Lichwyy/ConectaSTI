@@ -1,0 +1,248 @@
+DO $$
+DECLARE
+    v_integracao_id BIGINT;
+    v_endpoint_body_id BIGINT;
+    v_endpoint_predefinido_id BIGINT;
+    v_funcao_body_id BIGINT;
+    v_funcao_predefinido_id BIGINT;
+    v_no_requisicao_body_id BIGINT;
+    v_no_funcao_body_id BIGINT;
+    v_no_requisicao_predefinido_id BIGINT;
+    v_no_funcao_predefinido_id BIGINT;
+    v_fluxo_body_id BIGINT;
+    v_fluxo_predefinido_id BIGINT;
+    v_fluxo_versionado_body_id BIGINT;
+    v_fluxo_versionado_predefinido_id BIGINT;
+BEGIN
+    INSERT INTO integracao (criadoem, ultimaalteracao, url, token, nome, descricao)
+    SELECT current_timestamp, current_timestamp, 'https://dadosabertos.tse.jus.br/api/3/action', NULL, 'Gov - TSE Dados Abertos CKAN', 'API publica CKAN do portal de dados abertos do Tribunal Superior Eleitoral.'
+    WHERE NOT EXISTS (SELECT 1 FROM integracao WHERE nome = 'Gov - TSE Dados Abertos CKAN');
+
+    SELECT id INTO v_integracao_id FROM integracao WHERE nome = 'Gov - TSE Dados Abertos CKAN' ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'package_search' || chr(63) || 'q={{body.query}}&rows={{body.rows}}', v_integracao_id, 1, 'Busca datasets no TSE usando parametros recebidos no body da rota publica.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'package_search' || chr(63) || 'q={{body.query}}&rows={{body.rows}}'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_body_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'package_search' || chr(63) || 'q={{body.query}}&rows={{body.rows}}'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO end_point (criadoem, ultimaalteracao, recurso, integracao_id, verbo, descricao, token)
+    SELECT current_timestamp, current_timestamp, 'package_search' || chr(63) || 'q=eleicoes&rows=5', v_integracao_id, 1, 'Busca datasets no TSE usando parametros fixos definidos no proprio fluxo.', NULL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM end_point
+        WHERE integracao_id = v_integracao_id
+          AND recurso = 'package_search' || chr(63) || 'q=eleicoes&rows=5'
+          AND verbo = 1
+    );
+
+    SELECT id INTO v_endpoint_predefinido_id
+    FROM end_point
+    WHERE integracao_id = v_integracao_id
+      AND recurso = 'package_search' || chr(63) || 'q=eleicoes&rows=5'
+      AND verbo = 1
+    ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao TSE Datasets Body Resumo', '
+var entrada = $input || {};
+var result = entrada.result || {};
+var origem = result.results || entrada.results || entrada.content || entrada.items || [];
+
+if (!Array.isArray(origem)) {
+    origem = [];
+}
+
+var datasets = [];
+for (var i = 0; i < origem.length; i++) {
+    var item = origem[i] || {};
+    var org = item.organization || item.organizacao || {};
+    var tagsOrigem = [];
+
+    if (Array.isArray(item.tags)) {
+        tagsOrigem = item.tags;
+    }
+
+    var tags = [];
+    for (var t = 0; t < tagsOrigem.length; t++) {
+        tags.push(tagsOrigem[t].display_name || tagsOrigem[t].name || tagsOrigem[t]);
+    }
+
+    datasets.push({
+        id: item.id,
+        nome: item.name || item.nome,
+        titulo: item.title || item.titulo,
+        organizacao: org.title || org.name || org.nome,
+        atualizadoEm: item.metadata_modified || item.dataAtualizacao,
+        tags: tags
+    });
+}
+
+var total = datasets.length;
+if (typeof result.count !== "undefined") {
+    total = result.count;
+}
+
+return {
+    provider: "TSE Dados Abertos CKAN",
+    modo: "body da rota",
+    total: total,
+    datasets: datasets
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao TSE Datasets Body Resumo');
+
+    SELECT id INTO v_funcao_body_id FROM funcao WHERE nome = 'Gov - Funcao TSE Datasets Body Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO funcao (criadoem, ultimaalteracao, nome, corpo_da_funcao, parametro)
+    SELECT current_timestamp, current_timestamp, 'Gov - Funcao TSE Datasets Predefinido Resumo', '
+var entrada = $input || {};
+var result = entrada.result || {};
+var origem = result.results || entrada.results || entrada.content || entrada.items || [];
+
+if (!Array.isArray(origem)) {
+    origem = [];
+}
+
+var datasets = [];
+for (var i = 0; i < origem.length; i++) {
+    var item = origem[i] || {};
+    var org = item.organization || item.organizacao || {};
+    var tagsOrigem = [];
+
+    if (Array.isArray(item.tags)) {
+        tagsOrigem = item.tags;
+    }
+
+    var tags = [];
+    for (var t = 0; t < tagsOrigem.length; t++) {
+        tags.push(tagsOrigem[t].display_name || tagsOrigem[t].name || tagsOrigem[t]);
+    }
+
+    datasets.push({
+        id: item.id,
+        nome: item.name || item.nome,
+        titulo: item.title || item.titulo,
+        organizacao: org.title || org.name || org.nome,
+        atualizadoEm: item.metadata_modified || item.dataAtualizacao,
+        tags: tags
+    });
+}
+
+var total = datasets.length;
+if (typeof result.count !== "undefined") {
+    total = result.count;
+}
+
+return {
+    provider: "TSE Dados Abertos CKAN",
+    modo: "parametros pre-definidos",
+    total: total,
+    datasets: datasets
+};
+', '$input'
+    WHERE NOT EXISTS (SELECT 1 FROM funcao WHERE nome = 'Gov - Funcao TSE Datasets Predefinido Resumo');
+
+    SELECT id INTO v_funcao_predefinido_id FROM funcao WHERE nome = 'Gov - Funcao TSE Datasets Predefinido Resumo' ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_body_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_body_id);
+
+    SELECT id INTO v_no_requisicao_body_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_body_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_body_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_body_id);
+
+    SELECT id INTO v_no_funcao_body_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_body_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 1, NULL, NULL, NULL, v_endpoint_predefinido_id, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_predefinido_id);
+
+    SELECT id INTO v_no_requisicao_predefinido_id FROM no WHERE tipo = 1 AND end_point_id = v_endpoint_predefinido_id ORDER BY id LIMIT 1;
+
+    INSERT INTO no (criadoem, ultimaalteracao, tipo, body, headers, funcao_id, end_point_id, fluxo_id, chave_valor, tempo_minuto_validade)
+    SELECT current_timestamp, current_timestamp, 2, NULL, NULL, v_funcao_predefinido_id, NULL, NULL, NULL, 0
+    WHERE NOT EXISTS (SELECT 1 FROM no WHERE tipo = 2 AND funcao_id = v_funcao_predefinido_id);
+
+    SELECT id INTO v_no_funcao_predefinido_id FROM no WHERE tipo = 2 AND funcao_id = v_funcao_predefinido_id ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo TSE Datasets por Body'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo TSE Datasets por Body');
+
+    SELECT id INTO v_fluxo_body_id FROM fluxo WHERE nome = 'Gov - Fluxo TSE Datasets por Body' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_body_id, v_fluxo_body_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_body_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_body_id, v_fluxo_body_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_body_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_body_id, 'Gov - Fluxo TSE Datasets por Body v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_body_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_body_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_body_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_body_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_body_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO fluxo (criadoem, ultimaalteracao, nome)
+    SELECT current_timestamp, current_timestamp, 'Gov - Fluxo TSE Datasets Predefinido'
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo WHERE nome = 'Gov - Fluxo TSE Datasets Predefinido');
+
+    SELECT id INTO v_fluxo_predefinido_id FROM fluxo WHERE nome = 'Gov - Fluxo TSE Datasets Predefinido' ORDER BY id LIMIT 1;
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 1, v_no_requisicao_predefinido_id, v_fluxo_predefinido_id, false, false, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_predefinido_id AND ordem = 1);
+
+    INSERT INTO operacao (criadoem, ultimaalteracao, ordem, no_id, fluxo_id, repetir, usar_dados_anterior, erro, maximo_repeticao, backoff_type, backoff_delay, backoff_multiplier, timeout)
+    SELECT current_timestamp, current_timestamp, 2, v_no_funcao_predefinido_id, v_fluxo_predefinido_id, false, true, 1, 0, 1, 0, 1.0, 30000
+    WHERE NOT EXISTS (SELECT 1 FROM operacao WHERE fluxo_id = v_fluxo_predefinido_id AND ordem = 2);
+
+    INSERT INTO fluxo_versionado (criadoem, ultimaalteracao, fluxo_id, nome, versao, payload, atual)
+    SELECT current_timestamp, current_timestamp, v_fluxo_predefinido_id, 'Gov - Fluxo TSE Datasets Predefinido v1', 1,
+        CAST(json_build_object('Operacoes', json_build_array(
+            json_build_object('Ordem', 1, 'NoId', v_no_requisicao_predefinido_id, 'Repetir', false, 'UsarDadosAnterior', false, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000),
+            json_build_object('Ordem', 2, 'NoId', v_no_funcao_predefinido_id, 'Repetir', false, 'UsarDadosAnterior', true, 'Erro', 1, 'MaximoRepeticao', 0, 'BackoffType', 1, 'BackoffDelay', 0, 'BackoffMultiplier', 1.0, 'Timeout', 30000)
+        )) AS text),
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM fluxo_versionado WHERE fluxo_id = v_fluxo_predefinido_id AND versao = 1);
+
+    SELECT id INTO v_fluxo_versionado_predefinido_id FROM fluxo_versionado WHERE fluxo_id = v_fluxo_predefinido_id AND versao = 1 ORDER BY id LIMIT 1;
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota TSE Datasets por Body', 'Recebe query e rows no body da rota e consulta o catalogo CKAN do TSE.', NULL, false, false, 0, 60, false, NULL,
+        '{
+  "type": "object",
+  "required": ["query", "rows"],
+  "properties": {
+    "query": { "type": "string" },
+    "rows": { "type": "integer" }
+  }
+}',
+        v_fluxo_versionado_body_id, 'v1', 'gov/tse/datasets/body', 2
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 2 AND caminho = 'gov/tse/datasets/body');
+
+    INSERT INTO rota (criadoem, ultimaalteracao, nome, descricao, senha_acesso, usar_fluxo_mais_atual, rate_limit, rate_limit_requests, rate_limit_interval, idempotencia, json_schema_resp, json_schema_req, pipeline_versao_id, pipeline_versao, caminho, metodo)
+    SELECT current_timestamp, current_timestamp, 'Gov - Rota TSE Datasets Predefinido', 'Consulta o catalogo CKAN do TSE usando parametros fixos definidos no fluxo.', NULL, false, false, 0, 60, false, NULL, NULL,
+        v_fluxo_versionado_predefinido_id, 'v1', 'gov/tse/datasets/predefinido', 2
+    WHERE NOT EXISTS (SELECT 1 FROM rota WHERE metodo = 2 AND caminho = 'gov/tse/datasets/predefinido');
+END $$;

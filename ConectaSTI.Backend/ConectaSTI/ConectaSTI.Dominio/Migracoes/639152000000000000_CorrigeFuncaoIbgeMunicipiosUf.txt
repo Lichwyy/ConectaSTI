@@ -1,0 +1,49 @@
+UPDATE funcao
+SET ultimaalteracao = current_timestamp,
+    corpo_da_funcao = '
+var municipios = [];
+if (Array.isArray($input)) {
+    municipios = $input;
+}
+var lista = [];
+var primeiro = {};
+if (municipios.length > 0 && municipios[0]) {
+    primeiro = municipios[0];
+}
+
+var ufInfo = null;
+if (primeiro.microrregiao && primeiro.microrregiao.mesorregiao && primeiro.microrregiao.mesorregiao.UF) {
+    ufInfo = primeiro.microrregiao.mesorregiao.UF;
+}
+
+if (!ufInfo && primeiro["regiao-imediata"] && primeiro["regiao-imediata"]["regiao-intermediaria"] && primeiro["regiao-imediata"]["regiao-intermediaria"].UF) {
+    ufInfo = primeiro["regiao-imediata"]["regiao-intermediaria"].UF;
+}
+
+var uf = null;
+var regiao = null;
+if (ufInfo) {
+    uf = ufInfo.sigla || null;
+    if (ufInfo.regiao) {
+        regiao = ufInfo.regiao.nome;
+    }
+}
+
+for (var i = 0; i < municipios.length; i++) {
+    var item = municipios[i] || {};
+    lista.push({
+        codigoIbge: item.id,
+        nome: item.nome,
+        uf: uf
+    });
+}
+
+return {
+    provider: "IBGE Localidades",
+    uf: uf,
+    regiao: regiao,
+    total: lista.length,
+    municipios: lista
+};
+'
+WHERE nome = 'Gov - Funcao IBGE Municipios UF Resumo';

@@ -1,0 +1,6 @@
+UPDATE rota
+SET senha_acesso = NULL,
+    ultimaalteracao = current_timestamp
+WHERE caminho = 'examples/cep/01001000'
+  AND metodo = 1
+  AND senha_acesso = 'agify-cache-123';
