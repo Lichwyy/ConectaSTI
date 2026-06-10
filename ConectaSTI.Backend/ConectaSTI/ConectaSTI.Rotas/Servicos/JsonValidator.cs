@@ -50,7 +50,8 @@ namespace ConectaSTI.Rotas.Servicos
                 string expectedType = typeElement.GetString();
                 if (!MatchesType(instancia, expectedType))
                 {
-                    errors.Add($"{path}: esperado tipo '{expectedType}'.");
+                    path = path.Replace("$.", "");
+                    errors.Add($"{path}: esperava tipo '{expectedType}'.");
                     return;
                 }
             }
