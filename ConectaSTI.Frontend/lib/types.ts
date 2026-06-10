@@ -66,6 +66,37 @@ export interface Fluxo {
   criadoEm?: string | null
 }
 
+export interface FluxoVersionado {
+  id: number
+  fluxoId: number
+  nome: string
+  versao: number
+  payload: string
+  atual: boolean
+  criadoEm?: string | null
+  ultimaAlteracao?: string | null
+}
+
+export interface Rota {
+  id: number
+  nome: string
+  descricao?: string | null
+  senhaAcesso?: string | null
+  usarFluxoMaisAtual?: boolean
+  rateLimit?: boolean
+  rateLimitRequests?: number
+  rateLimitInterval?: number
+  idempotencia?: boolean
+  jsonSchemaResp?: string | null
+  jsonSchemaReq?: string | null
+  pipelineVersaoId: number
+  pipelineVersao?: string | null
+  caminho: string
+  metodo: VerboHttp
+  criadoEm?: string | null
+  ultimaAlteracao?: string | null
+}
+
 export interface EntradaFluxo {
   routeParams?: Record<string, string>
   queryParams?: Record<string, string>

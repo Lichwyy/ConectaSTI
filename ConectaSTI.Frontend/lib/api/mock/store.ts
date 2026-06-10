@@ -1,4 +1,4 @@
-import type { Integracao, EndPoint, Funcao, No, Operacao, Fluxo, LogFluxo, LogOperacao } from '@/lib/types'
+import type { Integracao, EndPoint, Funcao, No, Operacao, Fluxo, LogFluxo, LogOperacao, Rota, FluxoVersionado } from '@/lib/types'
 
 let _id = 200
 function nextId() { return _id++ }
@@ -29,6 +29,53 @@ const funcoes: Funcao[] = [
 
 const fluxos: Fluxo[] = [
   { id: 1, nome: 'Busca de Endereço por CEP', operacoes: [], criadoEm: '2025-02-01T09:00:00Z' },
+]
+
+const fluxosVersionados: FluxoVersionado[] = [
+  {
+    id: 1,
+    fluxoId: 1,
+    nome: 'Busca de Endereço por CEP',
+    versao: 1,
+    payload: '{"Operacoes":[]}',
+    atual: true,
+    criadoEm: '2025-02-01T09:20:00Z',
+  },
+  {
+    id: 2,
+    fluxoId: 2,
+    nome: 'Demo Storage - IBGE Buscar Municipio Salvo v1',
+    versao: 1,
+    payload: '{"Operacoes":[]}',
+    atual: true,
+    criadoEm: '2025-02-02T09:20:00Z',
+  },
+]
+
+const rotas: Rota[] = [
+  {
+    id: 1,
+    nome: 'Exemplo - Rota ViaCEP',
+    descricao: 'Retorna um payload resumido da ViaCEP usando FuncaoJS.',
+    usarFluxoMaisAtual: true,
+    rateLimitInterval: 60,
+    pipelineVersaoId: 1,
+    pipelineVersao: 'Exemplo - Fluxo ViaCEP Resumido_1',
+    caminho: 'examples/cep/01001000',
+    metodo: 1,
+    criadoEm: '2025-02-01T09:30:00Z',
+  },
+  {
+    id: 2,
+    nome: 'Demo Storage - Rota Buscar Municipio Salvo',
+    descricao: 'Le o codigo IBGE salvo em outro workflow e usa interpolacao para buscar o municipio.',
+    rateLimitInterval: 60,
+    pipelineVersaoId: 2,
+    pipelineVersao: 'v1',
+    caminho: 'demo/storage/ibge/municipio',
+    metodo: 1,
+    criadoEm: '2025-02-02T10:00:00Z',
+  },
 ]
 
 const nos: No[] = []
@@ -92,6 +139,8 @@ export const store = {
   endpoints: [...endpoints],
   funcoes: [...funcoes],
   fluxos: [...fluxos],
+  fluxosVersionados: [...fluxosVersionados],
+  rotas: [...rotas],
   nos: [...nos],
   operacoes: [...operacoes],
   logsFluxo: [...logsFluxo],

@@ -134,6 +134,54 @@ export async function mockRequest<T>(method: string, path: string, body?: unknow
     }
   }
 
+  // ── Rota ───────────────────────────────────────────────────────────────────
+  if (entity === 'Rota') {
+    if (m === 'GET' && entityId === null) return store.rotas as T
+    if (m === 'GET' && entityId !== null) {
+      const item = store.rotas.find(rota => rota.id === entityId)
+      if (!item) throw new Error('Rota não encontrada')
+      return item as T
+    }
+    if (m === 'POST') {
+      const b = body as { pipelineVersaoId: number }
+      const versao = store.fluxosVersionados.find(item => item.id === b.pipelineVersaoId)
+      const item = {
+        ...(body as object),
+        id: store.nextId(),
+        pipelineVersao: versao ? `${versao.nome}_${versao.versao}` : null,
+        criadoEm: new Date().toISOString(),
+      } as T
+      store.rotas.push(item as never)
+      return item
+    }
+    if (m === 'PUT' && entityId !== null) {
+      const idx = store.rotas.findIndex(rota => rota.id === entityId)
+      if (idx === -1) throw new Error('Rota não encontrada')
+      const b = body as { pipelineVersaoId: number }
+      const versao = store.fluxosVersionados.find(item => item.id === b.pipelineVersaoId)
+      store.rotas[idx] = {
+        ...store.rotas[idx],
+        ...(body as object),
+        pipelineVersao: versao ? `${versao.nome}_${versao.versao}` : store.rotas[idx].pipelineVersao,
+      }
+      return store.rotas[idx] as T
+    }
+    if (m === 'DELETE' && entityId !== null) {
+      store.rotas = store.rotas.filter(rota => rota.id !== entityId)
+      return undefined as T
+    }
+  }
+
+  // ── FluxoVersionado ───────────────────────────────────────────────────────
+  if (entity === 'FluxoVersionado') {
+    if (m === 'GET' && entityId === null) return store.fluxosVersionados as T
+    if (m === 'GET' && entityId !== null) {
+      const item = store.fluxosVersionados.find(versao => versao.id === entityId)
+      if (!item) throw new Error('Versão de workflow não encontrada')
+      return item as T
+    }
+  }
+
   // ── No ─────────────────────────────────────────────────────────────────────
   if (entity === 'No') {
     if (m === 'GET' && entityId !== null) {
